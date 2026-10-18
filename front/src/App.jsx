@@ -1,30 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "./context/AuthContext";
 import { SaleProvider } from "./context/SaleContext";
 import { ProductProvider } from "./context/ProductContext";
 import Topbar from "./components/Topbar";
 import Inventario from "./components/Inventario";
 import Caja from "./components/Caja";
+import Ventas from "./components/Ventas";
 import Toast from "./components/Toast";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
 export default function App() {
-  const { usuario, loading } = useAuth();
-  const [view, setView] = useState("login");
-  const [tab, setTab] = useState("inventario");
+  const { usuario, loading, puedeGestionarInventario } = useAuth();
+  const [view, setView] = useState("login");        // solo cuando NO hay usuario
+  const [tab, setTab] = useState("inventario");     // inventario | caja | ventas
+
+  // Reset del tab al cambiar de usuario: evita que un cajero herede tab="ventas"
+  // de la sesion anterior de un admin (el estado de App persiste entre logins).
+  useEffect(() => { setTab("inventario"); }, [usuario?.id]);
 
   if (loading) return <div className="auth-shell"><p className="status">Verificando sesión…</p></div>;
 
-  // Sin usuario: solo Login/Register. NO montamos Sale/Product -> sin socket en login.
   if (!usuario) {
     return view === "login"
       ? <Login onSwitch={() => setView("register")} />
       : <Register onSwitch={() => setView("login")} />;
   }
 
-  // Con usuario: los providers de sesion viven AQUI, así logout los desmonta
-  // y el socket se desconecta solo (cleanup de ProductContext).
   return (
     <SaleProvider>
       <ProductProvider>
@@ -37,10 +39,17 @@ export default function App() {
             <button className={`tab ${tab === "caja" ? "active" : ""}`} onClick={() => setTab("caja")}>
               Caja
             </button>
+            {puedeGestionarInventario && (
+              <button className={`tab ${tab === "ventas" ? "active" : ""}`} onClick={() => setTab("ventas")}>
+                Ventas
+              </button>
+            )}
           </nav>
-          {tab === "inventario" ? <Inventario /> : <Caja />}
-          <Toast />
+          {tab === "inventario" && <Inventario />}
+          {tab === "caja" && <Caja />}
+          {tab === "ventas" && puedeGestionarInventario && <Ventas />}
         </main>
+        <Toast />
       </ProductProvider>
     </SaleProvider>
   );

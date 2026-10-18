@@ -2,12 +2,14 @@
 const express = require("express");
 const router = express.Router();
 const ctrl = require("../controllers/sale.controller");
-const { requireAuth } = require("../middleware/authMiddleware");
+const { requireAuth, requireRole } = require("../middleware/authMiddleware");
 
-// Vender es operacion de caja: los TRES roles (admin, farmaceutico, cajero) pueden.
-// Por eso solo requireAuth, sin requireRole. Contraste con /products, que es
-// administracion de inventario y si exige requireRole("admin","farmaceutico").
-router.get("/", requireAuth, ctrl.getSales);
+// VENDER es operacion de caja: los TRES roles pueden (requireAuth a secas).
 router.post("/", requireAuth, ctrl.createSale);
+
+// VER HISTORIAL es operacion de auditoria/gestion: solo admin y farmaceutico.
+// Mismo recurso /sales, dos middlewares distintos segun la operacion.
+// El front oculta el tab, pero el back es el arbitro (403 si el cajero insiste por API).
+router.get("/", requireAuth, requireRole("admin", "farmaceutico"), ctrl.getSales);
 
 module.exports = router;

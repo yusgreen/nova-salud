@@ -1,7 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
-const TOKEN_KEY = "nova_token";
-
+export const TOKEN_KEY = "nova_token";
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }

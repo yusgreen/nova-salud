@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { api, getToken, setToken, clearToken } from "../services/api";
+import { api, getToken, setToken, clearToken, TOKEN_KEY } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -27,6 +27,20 @@ export function AuthProvider({ children }) {
       .finally(() => { if (activo) setLoading(false); });
     return () => { activo = false; };
   }, []);
+
+  useEffect(() => {
+  function onStorage(e) {
+    if (e.key !== TOKEN_KEY) return;        // solo nos interesa nuestra clave
+    const nuevo = getToken();               // lee el valor YA actualizado por A
+    if (!nuevo) { setUsuario(null); return; }   // logout en otra pestana
+    // cambio de usuario en otra pestana: revalidamos para espejar la sesion real
+    api.get("/auth/me")
+      .then((d) => setUsuario(d.user))
+      .catch(() => setUsuario(null));       // token nuevo invalido o expirado
+  }
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
+}, []);
 
   async function login(email, password) {
     const data = await api.post("/auth/login", { email, password });

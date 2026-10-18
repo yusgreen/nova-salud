@@ -260,3 +260,17 @@ body {
 .btn-danger { background:var(--danger) !important; color:#fff !important; }
 .confirm-msg { margin:0; color:var(--text); }
 @media (max-width:520px){ .form-row{ grid-template-columns:1fr; } }
+
+.ventas-list { display:flex; flex-direction:column; gap:14px; }
+.venta-card { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px 16px; box-shadow:var(--shadow); }
+.venta-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+.venta-id { font-weight:800; margin-right:8px; }
+.venta-meta { display:flex; align-items:center; gap:10px; }
+.chip-rol { background:var(--accent-soft); color:var(--accent); padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+.venta-total { color:var(--accent); font-size:18px; }
+.venta-table { width:100%; border-collapse:collapse; font-size:14px; }
+.venta-table th { text-align:left; color:var(--muted); font-weight:700; padding:6px 8px; border-bottom:1px solid var(--border); }
+.venta-table td { padding:6px 8px; border-bottom:1px solid var(--border); }
+.venta-table tr:last-child td { border-bottom:none; }
+.venta-table .num { text-align:right; font-variant-numeric:tabular-nums; }
+.venta-foot { margin-top:8px; text-align:right; }
