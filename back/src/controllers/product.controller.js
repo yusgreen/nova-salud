@@ -42,6 +42,7 @@ exports.getProduct = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const data = filtrarCampos(req.body);
+     if (data.imagen === undefined) data.imagen = ""; // default: el front puede omitir imagen
     // Validacion en BACKEND (condicion 1 del enunciado): nunca confiar en el front.
     if (!data.nombre || data.precio === undefined || data.stock === undefined) {
       return res.status(400).json({ error: "nombre, precio y stock son obligatorios" });
@@ -75,6 +76,18 @@ exports.deleteProduct = async (req, res) => {
     if (id === null) return res.status(400).json({ error: "id invalido" });
     const existe = await prisma.producto.findUnique({ where: { id } });
     if (!existe) return res.status(404).json({ error: "Producto no encontrado" });
+
+    // POLITICA (a): bloquear borrado si el producto tiene ventas historicas.
+    // Contamos ANTES de borrar para no depender del error de FK de Prisma (P2003),
+    // que daria un 500 sin mensaje humano. El back es el arbitro de la trazabilidad.
+    const ventas = await prisma.detalleVenta.count({ where: { productoId: id } });
+    if (ventas > 0) {
+      return res.status(409).json({
+        error: `No se puede eliminar: este producto tiene ${ventas} venta(s) en el historial. ` +
+               `Para preservar la trazabilidad de las ventas, el borrado esta bloqueado.`,
+      });
+    }
+
     await prisma.producto.delete({ where: { id } });
     res.json({ ok: true, id });
   } catch (e) {

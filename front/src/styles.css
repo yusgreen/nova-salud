@@ -238,3 +238,25 @@ body {
 .toast-x { background:transparent; border:none; color:var(--muted); font-size:18px; line-height:1; cursor:pointer; padding:0 2px; }
 .toast-x:hover { color:var(--danger); }
 @keyframes toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.modal-overlay { position:fixed; inset:0; background:rgba(2,6,23,.55); backdrop-filter:blur(2px); display:grid; place-items:center; z-index:60; padding:20px; }
+.modal-card { width:100%; max-width:460px; background:var(--card); border:1px solid var(--border); border-radius:18px; box-shadow:var(--shadow); max-height:90vh; overflow:auto; }
+.modal-head { display:flex; justify-content:space-between; align-items:center; padding:16px 18px; border-bottom:1px solid var(--border); }
+.modal-head h2 { margin:0; font-size:18px; }
+.modal-x { background:transparent; border:none; color:var(--muted); font-size:22px; line-height:1; cursor:pointer; }
+.modal-x:hover { color:var(--danger); }
+.modal-body { padding:18px; }
+.modal-foot { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
+.form-grid { display:flex; flex-direction:column; gap:12px; }
+.form-grid label { display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--muted); }
+.form-grid input { padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:15px; }
+.form-grid input:focus { outline:none; border-color:var(--accent); }
+.form-row { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+.form-row > label:nth-child(3) { grid-column:1 / -1; }.inv-head { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
+.card-actions { display:flex; gap:8px; margin-top:12px; }
+.btn-sm { padding:6px 12px; font-size:13px; }
+.btn-ghost.danger { color:var(--danger); }
+.btn-ghost.danger:hover { border-color:var(--danger); color:var(--danger); }
+.btn-danger { background:var(--danger) !important; color:#fff !important; }
+.confirm-msg { margin:0; color:var(--text); }
+@media (max-width:520px){ .form-row{ grid-template-columns:1fr; } }
