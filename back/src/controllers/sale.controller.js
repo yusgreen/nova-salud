@@ -80,13 +80,20 @@ exports.createSale = async (req, res) => {
         });
       }
 
-      // 4) Creo la venta con sus lineas (nested write de Prisma).
+            // 4) Creo la venta con sus lineas (nested write de Prisma).
       const venta = await tx.venta.create({
         data: {
           total,
           usuarioId,
           detalles: { create: lineasProcesadas.map(({ nombre, stockAnterior, stockMinimo, ...rest }) => rest) },
         },
+      });
+
+      // 4b) TRAIGO el nombre de quien atiende DENTRO de la tx, con select sin hash
+      //     (coherente con la seguridad de C1: el evento nunca expone passwordHash).
+      const atendido = await tx.usuario.findUnique({
+        where: { id: usuarioId },
+        select: { id: true, nombre: true, rol: true },
       });
 
       // 5) Descuento stock de cada producto (atomico: si algo falla arriba, nada se aplica).
@@ -97,10 +104,10 @@ exports.createSale = async (req, res) => {
         });
       }
 
-      return { venta, lineasProcesadas };
+      return { venta, lineasProcesadas, atendido };   // <- agregue atendido
     });
 
-    const { venta, lineasProcesadas } = resultado;
+    const { venta, lineasProcesadas, atendido } = resultado;
 
     // 6) Emision de socket PREPARADA con optional chaining (blindaje 6).
     //    En C1 req.io es undefined -> no ejecuta, no revierte.
@@ -122,6 +129,19 @@ exports.createSale = async (req, res) => {
 
     req.io?.emit("stock_actualizado", stockActualizado);
     req.io?.emit("alerta_bajo_stock", alertas);
+
+    req.io?.emit("venta_registrada", {
+      id: venta.id,
+      fecha: venta.fecha,
+      total,
+      atendidoPor: atendido,
+      detalles: lineasProcesadas.map((l) => ({
+        productoId: l.productoId,
+        producto: { nombre: l.nombre },
+        cantidad: l.cantidad,
+        precioUnitario: l.precioUnitario,
+      })),
+    });
 
     res.status(201).json({ venta, alertasGeneradas: alertas.length });
   } catch (e) {

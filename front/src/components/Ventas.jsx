@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
-import { api } from "../services/api";
+import { useSales } from "../context/SalesContext";
 
-// Formatea la fecha ISO de Prisma/SQLite a legible, en locale peruano (coherente con S/).
 function fechaLegible(iso) {
   try {
     return new Date(iso).toLocaleString("es-PE", {
@@ -14,19 +12,7 @@ function fechaLegible(iso) {
 }
 
 export default function Ventas() {
-  const [ventas, setVentas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let activo = true;
-    api
-      .get("/sales")
-      .then((d) => { if (activo) { setVentas(d); setError(""); } })
-      .catch((e) => { if (activo) setError(e.message || "No se pudo cargar el historial"); })
-      .finally(() => { if (activo) setLoading(false); });
-    return () => { activo = false; };
-  }, []);
+  const { ventas, loading, error } = useSales();   // <- ya no hace fetch propio
 
   if (loading) return <p className="status">Cargando historial…</p>;
   if (error) return <p className="status error">{error}</p>;
@@ -61,7 +47,7 @@ export default function Ventas() {
               </thead>
               <tbody>
                 {v.detalles.map((l) => (
-                  <tr key={l.id}>
+                  <tr key={l.productoId}>   {/* productoId existe en GET y en evento */}
                     <td>{l.producto?.nombre ?? "(producto eliminado)"}</td>
                     <td className="num">{l.cantidad}</td>
                     <td className="num">S/ {Number(l.precioUnitario).toFixed(2)}</td>

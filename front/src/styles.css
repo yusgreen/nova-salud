@@ -274,3 +274,24 @@ body {
 .venta-table tr:last-child td { border-bottom:none; }
 .venta-table .num { text-align:right; font-variant-numeric:tabular-nums; }
 .venta-foot { margin-top:8px; text-align:right; }
+
+/* --- Blindaje mobile (zonas flacas) --- */
+@media (max-width: 640px) {
+  /* tabs de la nav: permiten wrap para no desbordar con 3 botones en 320px */
+  .tabs { flex-wrap: wrap; }
+  .tab { flex: 1 1 auto; text-align: center; }
+
+  /* userbox de la topbar: el nombre se trunca si es largo, chip y Salir no se aplastan */
+  .userbox { flex-wrap: wrap; justify-content: flex-end; }
+  .username { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* tabla de Ventas: reduce densidad y trunca el nombre para que quepa sin scroll feo */
+  .venta-table { font-size: 13px; }
+  .venta-table th, .venta-table td { padding: 5px 6px; }
+  .venta-table td:first-child { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* espaciado general mas comodo en pantallas chicas */
+  .shell { padding: 16px; }
+  .grid { gap: 12px; }
+  .caja-layout { gap: 12px; }
+}

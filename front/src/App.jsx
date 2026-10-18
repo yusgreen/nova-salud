@@ -9,6 +9,7 @@ import Ventas from "./components/Ventas";
 import Toast from "./components/Toast";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import { SalesProvider } from "./context/SalesContext";   // nuevo import
 
 export default function App() {
   const { usuario, loading, puedeGestionarInventario } = useAuth();
@@ -30,6 +31,8 @@ export default function App() {
   return (
     <SaleProvider>
       <ProductProvider>
+        <SalesProvider> 
+        
         <main className="shell">
           <Topbar />
           <nav className="tabs">
@@ -50,6 +53,7 @@ export default function App() {
           {tab === "ventas" && puedeGestionarInventario && <Ventas />}
         </main>
         <Toast />
+         </SalesProvider>                                  
       </ProductProvider>
     </SaleProvider>
   );
