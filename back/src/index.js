@@ -41,6 +41,6 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 4000;
 
-server.listen(PORT, () => {
-  console.log(`Nova Salud API en http://localhost:${PORT} + Socket.io listo`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Nova Salud API en http://0.0.0.0:${PORT} + Socket.io listo`);
 });
