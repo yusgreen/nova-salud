@@ -1,0 +1,19 @@
+# Dependencias (se regeneran con npm install)
+node_modules/
+
+# Entorno / secretos (nunca se suben)
+.env
+.env.local
+*.local
+
+# Base de datos local SQLite
+*.db
+*.db-journal
+
+# Builds
+dist/
+build/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db

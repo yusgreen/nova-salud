@@ -1,0 +1,59 @@
+// schema.prisma — contrato de datos de Nova Salud
+// Dueño: Angel + Qwen. Marlon y Brat NO editan este archivo sin avisar.
+// Version calibrada a Prisma 7.10.1 (estable, sin -rc).
+
+generator client {
+  provider = "prisma-client-js"
+  // Elegido a proposito: compatible con CommonJS sin config extra.
+  // Emite warning de deprecacion en 7.x (esperado, ver seccion 10 de la doc).
+}
+
+datasource db {
+  provider = "sqlite"          // en dev es un ARCHIVO local; en prod se cambia a "postgresql"
+  url      = env("DATABASE_URL") // lee el .env, NUNCA hardcodea la cadena aqui
+}
+
+// --- USUARIO: quien opera el sistema (condicion 1 de seguridad del enunciado) ---
+model Usuario {
+  id           Int      @id @default(autoincrement())
+  nombre       String
+  email        String   @unique          // @unique = no puede haber dos cuentas con el mismo mail
+  passwordHash String                    // bcrypt, NUNCA texto plano. La condicion 1 vive aqui.
+  rol          String   @default("cajero") // admin | farmaceutico | cajero
+  // Por que String y no enum: SQLite no soporta enums nativos en Prisma.
+  // Con String evitamos que db push reviente en la primera creacion de tablas.
+  ventas       Venta[]                    // relacion inversa: un usuario tiene muchas ventas
+}
+
+// --- PRODUCTO: el inventario (hereda el Product del e-commerce + stock) ---
+model Producto {
+  id          Int             @id @default(autoincrement())
+  nombre      String
+  descripcion String
+  precio      Float
+  imagen      String
+  stock       Int             @default(0)
+  stockMinimo Int             @default(0)    // el umbral que dispara la alerta de reposicion
+  detalles    DetalleVenta[]                 // relacion inversa: un producto aparece en muchos detalles de venta
+}
+
+// --- VENTA: el ticket (el "registro de ventas" del enunciado) ---
+model Venta {
+  id          Int            @id @default(autoincrement())
+  fecha       DateTime       @default(now()) // se llena sola al crear la venta
+  total       Float
+  usuarioId   Int                            // foreign key: quien atendio
+  atendidoPor Usuario        @relation(fields: [usuarioId], references: [id])
+  detalles    DetalleVenta[]
+}
+
+// --- DETALLEVENTA: cada linea del ticket (producto + cantidad + precio congelado) ---
+model DetalleVenta {
+  id             Int      @id @default(autoincrement())
+  ventaId        Int
+  productoId     Int
+  cantidad       Int
+  precioUnitario Float    // congelado al momento de vender: si manana sube el precio, el historial no miente
+  venta          Venta    @relation(fields: [ventaId], references: [id])
+  producto       Producto @relation(fields: [productoId], references: [id])
+}
