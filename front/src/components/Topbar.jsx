@@ -12,6 +12,7 @@ export default function Topbar() {
 
   return (
     <header className="topbar">
+      <button className="menu-btn" onClick={onMenu} aria-label="Abrir menú">☰</button>
       <div>
         <h1 className="brand">Nova Salud</h1>
         <p className="muted">Sistema de inventario y ventas en tiempo real</p>
