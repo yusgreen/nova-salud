@@ -130,10 +130,10 @@ exports.createSale = async (req, res) => {
     req.io?.emit("stock_actualizado", stockActualizado);
     req.io?.emit("alerta_bajo_stock", alertas);
 
-    req.io?.emit("venta_registrada", {
+     req.io?.emit("venta_registrada", {
       id: venta.id,
       fecha: venta.fecha,
-      total,
+      total: venta.total,
       atendidoPor: atendido,
       detalles: lineasProcesadas.map((l) => ({
         productoId: l.productoId,
