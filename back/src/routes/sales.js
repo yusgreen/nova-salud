@@ -11,5 +11,5 @@ router.post("/", requireAuth, ctrl.createSale);
 // Mismo recurso /sales, dos middlewares distintos segun la operacion.
 // El front oculta el tab, pero el back es el arbitro (403 si el cajero insiste por API).
 router.get("/", requireAuth, requireRole("admin", "farmaceutico"), ctrl.getSales);
-
+router.get("/export", requireAuth, requireRole("admin", "farmaceutico"), ctrl.exportSalesExcel);
 module.exports = router;

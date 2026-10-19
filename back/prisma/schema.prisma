@@ -23,6 +23,7 @@ model Usuario {
   // Por que String y no enum: SQLite no soporta enums nativos en Prisma.
   // Con String evitamos que db push reviente en la primera creacion de tablas.
   ventas       Venta[]                    // relacion inversa: un usuario tiene muchas ventas
+  audits AuditLog[] @relation("AuditUsuario")
 }
 
 // --- PRODUCTO: el inventario (hereda el Product del e-commerce + stock) ---
@@ -45,6 +46,7 @@ model Venta {
   usuarioId   Int                            // foreign key: quien atendio
   atendidoPor Usuario        @relation(fields: [usuarioId], references: [id])
   detalles    DetalleVenta[]
+  nota String?
 }
 
 // --- DETALLEVENTA: cada linea del ticket (producto + cantidad + precio congelado) ---
@@ -56,4 +58,21 @@ model DetalleVenta {
   precioUnitario Float    // congelado al momento de vender: si manana sube el precio, el historial no miente
   venta          Venta    @relation(fields: [ventaId], references: [id])
   producto       Producto @relation(fields: [productoId], references: [id])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      Usuario? @relation("AuditUsuario", fields: [userId], references: [id], onDelete: SetNull)
+  accion    String   // LOGIN, LOGIN_FALLIDO, REGISTER, SALE_CREATE, PRODUCT_CREATE, PRODUCT_UPDATE, PRODUCT_DELETE
+  entidad   String?  // Usuario, Venta, Producto
+  entidadId Int?
+  detalle   String?  // JSON serializado como string para evitar dependencias de tipo Json en SQLite
+  ip        String?
+  userAgent String?
+  fecha     DateTime @default(now())
+
+  @@index([fecha])
+  @@index([userId])
+  @@index([accion])
 }

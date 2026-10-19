@@ -10,6 +10,7 @@ import Toast from "./components/Toast";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import { SalesProvider } from "./context/SalesContext";   // nuevo import
+import Auditoria from "./components/Auditoria";
 
 export default function App() {
   const { usuario, loading, puedeGestionarInventario } = useAuth();
@@ -47,10 +48,16 @@ export default function App() {
                 Ventas
               </button>
             )}
+            {puedeGestionarInventario && (
+                <button className={`tab ${tab === "auditoria" ? "active" : ""}`} onClick={() => setTab("auditoria")}>
+                  Auditoría
+                </button>
+              )}
           </nav>
           {tab === "inventario" && <Inventario />}
           {tab === "caja" && <Caja />}
           {tab === "ventas" && puedeGestionarInventario && <Ventas />}
+          {tab === "auditoria" && <Auditoria />}
         </main>
         <Toast />
          </SalesProvider>                                  

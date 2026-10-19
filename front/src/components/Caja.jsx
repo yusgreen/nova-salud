@@ -14,6 +14,8 @@ export default function Caja() {
   const [msgError, setMsgError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const [nota, setNota] = useState("");
+
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return productos;
@@ -23,24 +25,25 @@ export default function Caja() {
   }, [productos, busqueda]);
 
   async function registrarVenta() {
-    if (lineas.length === 0) return;
-    setBusy(true); setMsgError(""); setMsgExito("");
-    try {
-      // El front manda solo QUE y CUANTO. Ni precio ni total: eso los decide el back (C1-2).
-      const detalles = lineas.map((l) => ({ productoId: l.productoId, cantidad: l.cantidad }));
-      const data = await api.post("/sales", { detalles });
-      // Pinto el total REAL de la respuesta. El stock de la lista bajara SOLO via socket,
-      // sin refetch manual: eso demuestra el tiempo real de F3.
-      setMsgExito(`Venta registrada. Total S/ ${Number(data.venta.total).toFixed(2)} · Atendió: ${usuario?.nombre}`);
-      limpiar();
-    } catch (e) {
-      // 400 de stock insuficiente (o 401 si expiro el token): muestro el mensaje del back
-      // y NO limpio el ticket, para que el cajero ajuste la cantidad.
-      setMsgError(e.message || "No se pudo registrar la venta");
-    } finally {
-      setBusy(false);
-    }
+  if (lineas.length === 0) return;
+  setBusy(true); setMsgError(""); setMsgExito("");
+  try {
+    // El front manda solo QUE y CUANTO. Ni precio ni total: eso los decide el back (C1-2).
+    const detalles = lineas.map((l) => ({ productoId: l.productoId, cantidad: l.cantidad }));
+    const data = await api.post("/sales", { detalles, nota: nota.trim() || undefined });
+    // Pinto el total REAL de la respuesta. El stock de la lista bajara SOLO via socket,
+    // sin refetch manual: eso demuestra el tiempo real de F3.
+    setMsgExito(`Venta registrada. Total S/ ${Number(data.venta.total).toFixed(2)} · Atendió: ${usuario?.nombre}`);
+    limpiar();
+    setNota("");   // limpia la nota para el siguiente ticket (limpiar() solo toca el SaleContext)
+  } catch (e) {
+    // 400 de stock insuficiente (o 401 si expiro el token): muestro el mensaje del back
+    // y NO limpio el ticket, para que el cajero ajuste la cantidad.
+    setMsgError(e.message || "No se pudo registrar la venta");
+  } finally {
+    setBusy(false);
   }
+}
 
   return (
     <div className="caja-layout">
@@ -140,6 +143,17 @@ export default function Caja() {
           <span>Total</span>
           <strong>S/ {Number(total).toFixed(2)}</strong>
         </div>
+
+        <label className="nota-field">
+          Nota del ticket (opcional)
+          <textarea
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
+            placeholder="Ej.: paciente alérgico a penicilina, receta N° 123…"
+            maxLength={250}
+            rows={2}
+          />
+        </label>
 
         <button className="btn-primary btn-block" onClick={registrarVenta} disabled={busy || lineas.length === 0}>
           {busy ? "Registrando…" : "Registrar venta"}

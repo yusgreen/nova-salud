@@ -1,5 +1,5 @@
 const prisma = require("../prisma");  // el singleton: la unica linea de Prisma que ellos escriben
-
+const { auditar } = require("../utils/audit");
 // Whitelist: solo estos campos pueden entrar desde el cliente.
 // Si mandan { nombre:"x", hacker:"y" }, Prisma lanzaria error de campo
 // desconocido -> 500 feo. Con whitelist, "hacker" se ignora en silencio.
@@ -48,6 +48,14 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ error: "nombre, precio y stock son obligatorios" });
     }
     const producto = await prisma.producto.create({ data });
+    await auditar({
+      req,
+      userId: req.user.id,
+      accion: "PRODUCT_CREATE",
+      entidad: "Producto",
+      entidadId: producto.id,
+      detalle: { nombre: producto.nombre, precio: producto.precio, stock: producto.stock },
+    });
     res.status(201).json(producto);
   } catch (e) {
     console.error(e);
@@ -63,6 +71,17 @@ exports.updateProduct = async (req, res) => {
     if (!existe) return res.status(404).json({ error: "Producto no encontrado" });
     const data = filtrarCampos(req.body);
     const producto = await prisma.producto.update({ where: { id }, data });
+
+    await auditar({
+      req,
+      accion: "PRODUCT_UPDATE",
+      entidad: "Producto",
+      entidadId: producto.id,
+      detalle: {
+        nombre: producto.nombre,
+        camposActualizados: Object.keys(data || {}),
+      },
+    });
     res.json(producto);
   } catch (e) {
     console.error(e);
@@ -87,6 +106,13 @@ exports.deleteProduct = async (req, res) => {
                `Para preservar la trazabilidad de las ventas, el borrado esta bloqueado.`,
       });
     }
+    await auditar({
+      req,
+      accion: "PRODUCT_DELETE",
+      entidad: "Producto",
+      entidadId: id,
+      detalle: { nombre: existe.nombre },
+    });
 
     await prisma.producto.delete({ where: { id } });
     res.json({ ok: true, id });

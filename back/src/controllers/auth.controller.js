@@ -4,7 +4,7 @@ const prisma = require("../prisma");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { secret, expiresIn } = require("../config/auth");
-
+const { auditar } = require("../utils/audit");
 function normalizarEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
@@ -54,6 +54,15 @@ exports.register = async (req, res) => {
       },
     });
 
+    await auditar({
+      req,
+      userId: usuario.id,
+      accion: "REGISTER",
+      entidad: "Usuario",
+      entidadId: usuario.id,
+      detalle: { email: usuario.email, rol: usuario.rol },
+    });
+
     return res.status(201).json({ user: usuarioSeguro(usuario) });
   } catch (error) {
     console.error(error);
@@ -78,10 +87,27 @@ exports.login = async (req, res) => {
     const credentialsValidas =
       usuario && (await bcrypt.compare(password, usuario.passwordHash));
 
+      await auditar({
+        req,
+        accion: "LOGIN_FALLIDO",
+        entidad: "Usuario",
+        entidadId: null,
+        detalle: { email },
+      });
+
     // Mensaje único para no revelar si el email existe o no.
     if (!credentialsValidas) {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
+
+    await auditar({
+      req,
+      userId: usuario.id,
+      accion: "LOGIN",
+      entidad: "Usuario",
+      entidadId: usuario.id,
+      detalle: { email: usuario.email, rol: usuario.rol },
+    });
 
     const token = jwt.sign(
       {
@@ -91,6 +117,7 @@ exports.login = async (req, res) => {
       secret,
       { expiresIn }
     );
+
 
     return res.json({
       token,
@@ -111,6 +138,8 @@ exports.me = async (req, res) => {
     if (!usuario) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
+
+    
 
     return res.json({ user: usuarioSeguro(usuario) });
   } catch (error) {

@@ -295,3 +295,23 @@ body {
   .grid { gap: 12px; }
   .caja-layout { gap: 12px; }
 }
+
+.nota-field { display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--muted); margin-top:10px; }
+.nota-field textarea { padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg); color:var(--text); font-size:14px; resize:vertical; font-family:inherit; }
+.nota-field textarea:focus { outline:none; border-color:var(--accent); }
+.ventas-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.venta-nota { margin:8px 0 0; padding:8px 10px; background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:8px; font-size:14px; color:var(--text); }
+.aud-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.aud-toolbar select { margin-left:8px; padding:6px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); }
+.aud-scroll { overflow-x:auto; border:1px solid var(--border); border-radius:14px; }
+.aud-table { width:100%; border-collapse:collapse; font-size:13px; min-width:760px; }
+.aud-table th { text-align:left; color:var(--muted); font-weight:700; padding:8px 10px; border-bottom:1px solid var(--border); background:var(--card); position:sticky; top:0; }
+.aud-table td { padding:7px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+.aud-table tr:last-child td { border-bottom:none; }
+.aud-table .nowrap { white-space:nowrap; }
+.aud-detalle { max-width:280px; word-break:break-word; color:var(--muted); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; }
+.aud-tag { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; background:var(--accent-soft); color:var(--accent); }
+.tag-LOGIN_FALLIDO { background:rgba(239,68,68,.15); color:var(--danger); }
+.tag-PRODUCT_DELETE { background:rgba(239,68,68,.12); color:var(--danger); }
+.aud-danger td { background:rgba(239,68,68,.05); }
+@media (max-width:640px){ .aud-table{ font-size:12px; } .aud-detalle{ max-width:160px; } }

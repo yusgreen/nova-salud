@@ -34,6 +34,7 @@ app.use(attachIo);
 app.use("/auth", authRoutes);
 app.use("/products", productRoutes);
 app.use("/sales", salesRoutes);
+app.use("/audit", require("./routes/audit"));
 
 app.get("/", (req, res) => {
   res.json({ ok: true, service: "nova-salud-api" });
