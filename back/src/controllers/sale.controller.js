@@ -293,7 +293,7 @@ exports.exportSalesExcel = async (req, res) => {
 exports.getMyTurn = async (req, res) => {
   try {
     const ventas = await prisma.venta.findMany({
-      where: { usuarioId: req.user.id },   // solo lo SUYO, por construccion
+      where: { usuarioId: req.user.id },
       include: {
         detalles: { include: { producto: true } },
         atendidoPor: { select: { id: true, nombre: true, rol: true } },

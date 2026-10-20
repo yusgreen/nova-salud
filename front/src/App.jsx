@@ -15,8 +15,7 @@ import { IconInventario, IconCaja, IconVentas, IconAuditoria, IconPanel, IconLog
 import Dashboard from "./components/Dashboard";
 // Un solo lugar para la navegación. icon = componente SVG (hereda currentColor).
 const NAV = [
-  { id: "dashboard",  label: "Panel",      icon: IconPanel,      visible: (g) => g },
-  { id: "inventario", label: "Inventario", icon: IconInventario, visible: () => true },
+  { id: "dashboard",  label: "Panel",      icon: IconPanel,      visible: () => true },  { id: "inventario", label: "Inventario", icon: IconInventario, visible: () => true },
   { id: "caja",       label: "Caja",       icon: IconCaja,       visible: () => true },
   { id: "ventas",     label: "Ventas",     icon: IconVentas,     visible: (g) => g },
   { id: "auditoria",  label: "Auditoría",  icon: IconAuditoria,  visible: (g) => g },
@@ -72,8 +71,7 @@ export default function App() {
             <div className="app-main">
               <Topbar onMenu={() => setMenuAbierto(true)} />
               <main className="content">
-                {tab === "dashboard" && puedeGestionarInventario && <Dashboard />}
-                {tab === "inventario" && <Inventario />}
+                {tab === "dashboard" && <Dashboard />}                {tab === "inventario" && <Inventario />}
                 {tab === "caja" && <Caja />}
                 {tab === "ventas" && puedeGestionarInventario && <Ventas />}
                 {tab === "auditoria" && puedeGestionarInventario && <Auditoria />}
