@@ -70,8 +70,7 @@ export default function App() {
 
             <div className="app-main">
               <Topbar onMenu={() => setMenuAbierto(true)} />
-              <main className="content">
-                {tab === "dashboard" && <Dashboard />}                {tab === "inventario" && <Inventario />}
+              <main className="content" key={tab}>                {tab === "dashboard" && <Dashboard />}                {tab === "inventario" && <Inventario />}
                 {tab === "caja" && <Caja />}
                 {tab === "ventas" && puedeGestionarInventario && <Ventas />}
                 {tab === "auditoria" && puedeGestionarInventario && <Auditoria />}
