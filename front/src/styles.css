@@ -346,3 +346,18 @@ body {
 .sidebar-logo { width: 26px; height: 26px; color: var(--accent); flex-shrink: 0; }
 .sidebar-brand { display:flex; align-items:center; gap:10px; padding:18px 20px 6px; }
 .sidebar-tag { padding: 0 20px 14px; margin: 0; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); }
+
+/* --- Panel / Dashboard (A2) --- */
+.dash { display:flex; flex-direction:column; gap:18px; }
+.dash-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px; }
+.dash-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px 16px; display:flex; flex-direction:column; gap:6px; }
+.dash-num { font-size:26px; font-weight:800; color:var(--accent); line-height:1.1; }
+.dash-num-sm { font-size:18px; }
+.dash-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+.dash-wide { grid-column: span 2; }
+.dash-alert { border-color:#fbbf24; background:rgba(251,191,36,0.08); }
+.dash-alert .dash-num { color:#fbbf24; }
+.dash-list { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px 16px; }
+.dash-list ul { list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.dash-li-nombre { font-weight:600; }
+@media (max-width:520px){ .dash-wide { grid-column: span 1; } .dash-num { font-size:22px; } }
