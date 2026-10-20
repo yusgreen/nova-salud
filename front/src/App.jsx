@@ -11,24 +11,22 @@ import Auditoria from "./components/Auditoria";
 import Toast from "./components/Toast";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import { IconInventario, IconCaja, IconVentas, IconAuditoria, IconLogo } from "./components/Icons";
 
-// Un solo lugar para la navegación. visible(g) decide si la vista se muestra
-// (g = puedeGestionarInventario). Agregar una vista en A2 = agregar una fila acá.
+// Un solo lugar para la navegación. icon = componente SVG (hereda currentColor).
 const NAV = [
-  { id: "inventario", label: "Inventario", icon: "📦", visible: () => true },
-  { id: "caja",       label: "Caja",       icon: "🧾", visible: () => true },
-  { id: "ventas",     label: "Ventas",     icon: "📈", visible: (g) => g },
-  { id: "auditoria",  label: "Auditoría",  icon: "🛡️", visible: (g) => g },
+  { id: "inventario", label: "Inventario", icon: IconInventario, visible: () => true },
+  { id: "caja",       label: "Caja",       icon: IconCaja,       visible: () => true },
+  { id: "ventas",     label: "Ventas",     icon: IconVentas,     visible: (g) => g },
+  { id: "auditoria",  label: "Auditoría",  icon: IconAuditoria,  visible: (g) => g },
 ];
 
 export default function App() {
   const { usuario, loading, puedeGestionarInventario } = useAuth();
   const [view, setView] = useState("login");
   const [tab, setTab] = useState("inventario");
-  const [menuAbierto, setMenuAbierto] = useState(false); // drawer móvil
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
-  // Reset al cambiar de usuario: cajero no hereda Auditoría del admin.
-  // Y cerramos el drawer por si el cambio de sesión ocurrió con él abierto.
   useEffect(() => { setTab("inventario"); setMenuAbierto(false); }, [usuario?.id]);
 
   if (loading) return <div className="auth-shell"><p className="status">Verificando sesión…</p></div>;
@@ -39,9 +37,7 @@ export default function App() {
       : <Register onSwitch={() => setView("login")} />;
   }
 
-  // Navegar cierra el drawer (en móvil, si no, la vista nueva queda tapada).
   function irA(id) { setTab(id); setMenuAbierto(false); }
-
   const items = NAV.filter((n) => n.visible(puedeGestionarInventario));
 
   return (
@@ -53,17 +49,19 @@ export default function App() {
 
             <aside className={`sidebar ${menuAbierto ? "open" : ""}`}>
               <div className="sidebar-brand">
-                <span className="sidebar-logo">💊</span>
+                <IconLogo className="sidebar-logo" aria-hidden="true" />
                 <span className="sidebar-name">Nova Salud</span>
               </div>
+              <p className="sidebar-tag">Sistema de inventario y ventas en tiempo real</p>
               <nav className="sidebar-nav">
                 {items.map((n) => (
                   <button
                     key={n.id}
                     className={`side-link ${tab === n.id ? "active" : ""}`}
                     onClick={() => irA(n.id)}
+                    aria-current={tab === n.id ? "page" : undefined}
                   >
-                    <span className="side-icon">{n.icon}</span>
+                    <n.icon className="side-icon" aria-hidden="true" />
                     <span className="side-label">{n.label}</span>
                   </button>
                 ))}

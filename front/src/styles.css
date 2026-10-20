@@ -339,3 +339,10 @@ body {
   .drawer-overlay { display:block; position:fixed; inset:0; background:rgba(2,6,23,.55); z-index:65; }
   .content { padding:16px; }
 }
+
+/* --- Pulido A1: iconos SVG + marca única --- */
+.userbox { margin-left: auto; }            /* ancla a la derecha con o sin ☰ (P1) */
+.side-icon { width: 20px; height: 20px; flex-shrink: 0; }   /* era font-size de emoji */
+.sidebar-logo { width: 26px; height: 26px; color: var(--accent); flex-shrink: 0; }
+.sidebar-brand { align-items: center; }
+.sidebar-tag { padding: 0 20px 14px; margin: -4px 0 0; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); }

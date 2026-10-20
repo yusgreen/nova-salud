@@ -13,10 +13,6 @@ export default function Topbar({ onMenu }) {
   return (
     <header className="topbar">
       <button className="menu-btn" onClick={onMenu} aria-label="Abrir menú">☰</button>
-      <div>
-        <h1 className="brand">Nova Salud</h1>
-        <p className="muted">Sistema de inventario y ventas en tiempo real</p>
-      </div>
       <div className="userbox">
         <span className="username">{usuario?.nombre}</span>
         <span className="rolchip" style={{ background: c.bg, color: c.fg }}>
