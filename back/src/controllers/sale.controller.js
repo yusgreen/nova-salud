@@ -286,3 +286,23 @@ exports.exportSalesExcel = async (req, res) => {
     res.status(500).json({ error: "Error al generar el Excel" });
   }
 };
+
+// ---- GET /sales/mi-turno : ventas del USUARIO AUTENTICADO (cualquier rol) ----
+// Sin filtro de fecha en el back: el "hoy" se define en el front (hora local del
+// navegador), igual que el panel del gerente. Una sola definicion de "hoy".
+exports.getMyTurn = async (req, res) => {
+  try {
+    const ventas = await prisma.venta.findMany({
+      where: { usuarioId: req.user.id },   // solo lo SUYO, por construccion
+      include: {
+        detalles: { include: { producto: true } },
+        atendidoPor: { select: { id: true, nombre: true, rol: true } },
+      },
+      orderBy: { fecha: "desc" },
+    });
+    res.json(ventas);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error al listar mi turno" });
+  }
+};

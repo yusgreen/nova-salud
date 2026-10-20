@@ -1,14 +1,34 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSales } from "../context/SalesContext";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
+import { api } from "../services/api";
 
 function money(n) { return `S/ ${Number(n || 0).toFixed(2)}`; }
 
 export default function Dashboard() {
-  const { puedeGestionarInventario } = useAuth();
-  const { ventas, loading, error } = useSales();
+  const { usuario, puedeGestionarInventario } = useAuth();
+  const { ventas: ventasGerente, loading: loadingGerente, error: errorGerente } = useSales();
   const { productos } = useProducts();
+
+  // El cajero NO puede llamar GET /sales (403, y el SalesContext lo guarda por rol).
+  // Por eso trae SU turno via GET /sales/mi-turno con fetch local (simetrico a Auditoria.jsx).
+  const [misVentas, setMisVentas] = useState([]);
+  const [loadingCajero, setLoadingCajero] = useState(true);
+  const [errorCajero, setErrorCajero] = useState("");
+  useEffect(() => {
+    if (puedeGestionarInventario) { setLoadingCajero(false); return; }   // gerente no usa este fetch
+    let activo = true;
+    api.get("/sales/mi-turno")
+      .then((d) => { if (activo) { setMisVentas(d); setErrorCajero(""); } })
+      .catch((e) => { if (activo) setErrorCajero(e.message || "No se pudo cargar tu turno"); })
+      .finally(() => { if (activo) setLoadingCajero(false); });
+    return () => { activo = false; };
+  }, [puedeGestionarInventario]);
+
+  const ventas = puedeGestionarInventario ? ventasGerente : misVentas;
+  const loading = puedeGestionarInventario ? loadingGerente : loadingCajero;
+  const error = puedeGestionarInventario ? errorGerente : errorCajero;
 
   // "Hoy" definido UNA sola vez, con la hora local del navegador (ver decisión arriba).
   const metricas = useMemo(() => {
@@ -42,6 +62,19 @@ export default function Dashboard() {
   if (error) return <p className="status error">{error}</p>;
 
   const m = metricas;
+  if (!puedeGestionarInventario) {
+    return (
+      <div className="dash">
+        <p className="muted small">Tu turno de hoy · {usuario?.nombre}</p>
+        <div className="dash-grid">
+          <div className="dash-card"><span className="dash-num">{m.ventasHoy}</span><span className="dash-label">Ventas hoy</span></div>
+          <div className="dash-card"><span className="dash-num">{m.unidadesHoy}</span><span className="dash-label">Unidades</span></div>
+          <div className="dash-card"><span className="dash-num">{money(m.totalHoy)}</span><span className="dash-label">Recaudado</span></div>
+          <div className="dash-card"><span className="dash-num">{m.ventasHoy ? money(m.ticketPromedio) : "—"}</span><span className="dash-label">Ticket promedio</span></div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="dash">
       <div className="dash-grid">
