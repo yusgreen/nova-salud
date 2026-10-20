@@ -6,7 +6,7 @@ const COLOR_ROL = {
   cajero: { bg: "rgba(251,191,36,0.14)", fg: "#fbbf24" },
 };
 
-export default function Topbar() {
+export default function Topbar({ onMenu }) {
   const { usuario, logout } = useAuth();
   const c = COLOR_ROL[usuario?.rol] || COLOR_ROL.cajero;
 
