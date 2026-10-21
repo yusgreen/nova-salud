@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
-
+import { SkeletonLines } from "./Skeleton";
 const ACCIONES = [
   { v: "", l: "Todas" },
   { v: "LOGIN", l: "Login" },
@@ -38,8 +38,7 @@ export default function Auditoria() {
     [logs, filtro]
   );
 
-  if (loading) return <p className="status">Cargando auditoría…</p>;
-  if (error) return <p className="status error">{error}</p>;
+if (loading) return <SkeletonLines count={6} />;  if (error) return <p className="status error">{error}</p>;
 
   return (
     <div>

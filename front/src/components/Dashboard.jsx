@@ -3,6 +3,8 @@ import { useSales } from "../context/SalesContext";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
+import { useCountUp } from "../hooks/useCountUp";
+import { SkeletonGrid } from "./Skeleton";
 
 function money(n) { return `S/ ${Number(n || 0).toFixed(2)}`; }
 
@@ -56,9 +58,16 @@ export default function Dashboard() {
     const criticos = (productos || []).filter((p) => p.stock <= p.stockMinimo);
 
     return { ventasHoy: hoy.length, totalHoy, unidadesHoy, ticketPromedio, topProducto, topCant, criticos };
-  }, [ventas, productos]);
+   }, [ventas, productos]);
 
-  if (loading) return <p className="status">Cargando panel…</p>;
+  // P2: count-up. Declarados ANTES de los returns tempranos para no condicionar hooks.
+  // topProducto (string) y criticos.length (señal de acción) NO se animan a propósito.
+  const nVentas = useCountUp(metricas.ventasHoy);
+  const nUnidades = useCountUp(metricas.unidadesHoy);
+  const nTotal = useCountUp(metricas.totalHoy);
+  const nTicket = useCountUp(metricas.ticketPromedio);
+
+  if (loading) return <SkeletonGrid count={4} />;
   if (error) return <p className="status error">{error}</p>;
 
   const m = metricas;
@@ -67,10 +76,10 @@ export default function Dashboard() {
       <div className="dash">
         <p className="muted small">Tu turno de hoy · {usuario?.nombre}</p>
         <div className="dash-grid">
-          <div className="dash-card"><span className="dash-num">{m.ventasHoy}</span><span className="dash-label">Ventas hoy</span></div>
-          <div className="dash-card"><span className="dash-num">{m.unidadesHoy}</span><span className="dash-label">Unidades</span></div>
-          <div className="dash-card"><span className="dash-num">{money(m.totalHoy)}</span><span className="dash-label">Recaudado</span></div>
-          <div className="dash-card"><span className="dash-num">{m.ventasHoy ? money(m.ticketPromedio) : "—"}</span><span className="dash-label">Ticket promedio</span></div>
+          <div className="dash-card"><span className="dash-num">{nVentas}</span><span className="dash-label">Ventas hoy</span></div>
+          <div className="dash-card"><span className="dash-num">{nUnidades}</span><span className="dash-label">Unidades</span></div>
+          <div className="dash-card"><span className="dash-num">{money(nTotal)}</span><span className="dash-label">Recaudado</span></div>
+          <div className="dash-card"><span className="dash-num">{m.ventasHoy ? money(nTicket) : "—"}</span><span className="dash-label">Ticket promedio</span></div>
         </div>
       </div>
     );

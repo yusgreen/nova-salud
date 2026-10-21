@@ -3,6 +3,7 @@ import { api } from "../services/api";
 import { useSale } from "../context/SaleContext";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductContext";
+import { SkeletonStack } from "./Skeleton";
 
 export default function Caja() {
   const { lineas, agregar, cambiarCantidad, quitar, limpiar, total, unidades } = useSale();
@@ -58,7 +59,7 @@ export default function Caja() {
           />
         </div>
 
-        {loading && <p className="status">Cargando productos…</p>}
+        {loading && <SkeletonStack count={5} variant="row" />}
         {error && <p className="status error">{error}</p>}
 
         {!loading && !error && (

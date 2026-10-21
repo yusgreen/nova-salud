@@ -20,3 +20,13 @@ export function SkeletonLines({ count = 3 }) {
     </div>
   );
 }
+
+// Columna de placeholders (simula listas verticales: tickets, filas de producto).
+export function SkeletonStack({ count = 3, variant = "card" }) {
+  const Unit = variant === "row" ? SkeletonRow : SkeletonCard;
+  return (
+    <div className="skel-lines" role="status" aria-label="Cargando">
+      {Array.from({ length: count }).map((_, i) => <Unit key={i} />)}
+    </div>
+  );
+}

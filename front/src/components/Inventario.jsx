@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
 import ProductForm from "./ProductForm";
 import ConfirmDialog from "./ConfirmDialog";
-
+import { SkeletonGrid } from "./Skeleton";
 export default function Inventario() {
   const { productos, loading, error, refrescar } = useProducts();
   const { puedeGestionarInventario } = useAuth();
@@ -38,8 +38,7 @@ export default function Inventario() {
     }
   }
 
-  if (loading) return <p className="status">Cargando inventario...</p>;
-  if (error) return <p className="status error">{error}. Verifica el backend en puerto 4000.</p>;
+  if (loading) return <SkeletonGrid count={4} />;  if (error) return <p className="status error">{error}. Verifica el backend en puerto 4000.</p>;
 
   return (
     <>

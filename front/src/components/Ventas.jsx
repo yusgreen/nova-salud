@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSales } from "../context/SalesContext";
 import { descargarVentasExcel } from "../services/export";
-
+import { SkeletonStack } from "./Skeleton";
 function fechaLegible(iso) {
   try {
     return new Date(iso).toLocaleString("es-PE", {
@@ -22,8 +22,7 @@ export default function Ventas() {
     finally { setExportando(false); }
   }
 
-  if (loading) return <p className="status">Cargando historial…</p>;
-  if (error) return <p className="status error">{error}</p>;
+if (loading) return <SkeletonLines count={6} />;  if (error) return <p className="status error">{error}</p>;
   if (ventas.length === 0) return <p className="muted">Todavía no hay ventas registradas.</p>;
 
   return (
