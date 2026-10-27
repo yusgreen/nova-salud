@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./context/AuthContext";
+import { useConfig } from "./context/ConfigContext";
 import { SaleProvider } from "./context/SaleContext";
 import { ProductProvider } from "./context/ProductContext";
 import { SalesProvider } from "./context/SalesContext";
@@ -8,10 +9,11 @@ import Inventario from "./components/Inventario";
 import Caja from "./components/Caja";
 import Ventas from "./components/Ventas";
 import Auditoria from "./components/Auditoria";
+import Configuracion from "./components/Configuracion";
 import Toast from "./components/Toast";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import { IconInventario, IconCaja, IconVentas, IconAuditoria, IconPanel, IconLogo } from "./components/Icons";
+import { IconInventario, IconCaja, IconVentas, IconAuditoria, IconPanel, IconLogo, IconConfiguracion } from "./components/Icons";
 import Dashboard from "./components/Dashboard";
 // Un solo lugar para la navegación. icon = componente SVG (hereda currentColor).
 const NAV = [
@@ -19,10 +21,12 @@ const NAV = [
   { id: "caja",       label: "Caja",       icon: IconCaja,       visible: () => true },
   { id: "ventas",     label: "Ventas",     icon: IconVentas,     visible: (g) => g },
   { id: "auditoria",  label: "Auditoría",  icon: IconAuditoria,  visible: (g) => g },
+  { id: "configuracion", label: "Configuración", icon: IconConfiguracion, visible: () => true, adminOnly: true },
 ];
 
 export default function App() {
-  const { usuario, loading, puedeGestionarInventario } = useAuth();
+  const { usuario, loading, puedeGestionarInventario, isAdmin } = useAuth();
+  const { config } = useConfig();
   const [view, setView] = useState("login");
   const [tab, setTab] = useState("inventario");
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -38,7 +42,9 @@ export default function App() {
   }
 
   function irA(id) { setTab(id); setMenuAbierto(false); }
-  const items = NAV.filter((n) => n.visible(puedeGestionarInventario));
+  const items = NAV.filter(
+    (n) => n.visible(puedeGestionarInventario) && (!n.adminOnly || isAdmin)
+  );
 
   return (
     <SaleProvider>
@@ -50,9 +56,9 @@ export default function App() {
             <aside className={`sidebar ${menuAbierto ? "open" : ""}`}>
               <div className="sidebar-brand">
                 <IconLogo className="sidebar-logo" aria-hidden="true" />
-                <span className="sidebar-name">Nova Salud</span>
+                <span className="sidebar-name">{config.nombreNegocio}</span>
               </div>
-              <p className="sidebar-tag">Sistema de inventario y ventas en tiempo real</p>
+              <p className="sidebar-tag">{config.lema}</p>
               <nav className="sidebar-nav">
                 {items.map((n) => (
                   <button
@@ -74,6 +80,7 @@ export default function App() {
                 {tab === "caja" && <Caja />}
                 {tab === "ventas" && puedeGestionarInventario && <Ventas />}
                 {tab === "auditoria" && puedeGestionarInventario && <Auditoria />}
+                {tab === "configuracion" && isAdmin && <Configuracion />}
               </main>
             </div>
           </div>

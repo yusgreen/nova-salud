@@ -2,16 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useSales } from "../context/SalesContext";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
+import { useConfig } from "../context/ConfigContext";
 import { api } from "../services/api";
+import { formatearMoneda } from "../services/format";
 import { useCountUp } from "../hooks/useCountUp";
 import { SkeletonGrid } from "./Skeleton";
-
-function money(n) { return `S/ ${Number(n || 0).toFixed(2)}`; }
+import { IlustracionPulso } from "./Illustrations";
 
 export default function Dashboard() {
   const { usuario, puedeGestionarInventario } = useAuth();
+  const { config } = useConfig();
   const { ventas: ventasGerente, loading: loadingGerente, error: errorGerente } = useSales();
   const { productos } = useProducts();
+
+  const money = (n) => formatearMoneda(n, config.moneda);
 
   // El cajero NO puede llamar GET /sales (403, y el SalesContext lo guarda por rol).
   // Por eso trae SU turno via GET /sales/mi-turno con fetch local (simetrico a Auditoria.jsx).
@@ -71,9 +75,23 @@ export default function Dashboard() {
   if (error) return <p className="status error">{error}</p>;
 
   const m = metricas;
+  const hora = new Date().getHours();
+  const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
+  const hero = (
+    <div className="dash-hero">
+      <div>
+        <p className="dash-hero-kicker">Panel de control</p>
+        <h2>{saludo}, {usuario?.nombre?.split(" ")[0]}</h2>
+        <p className="muted small">{config.nombreNegocio} · Resumen de hoy</p>
+      </div>
+      <IlustracionPulso className="dash-hero-art" />
+    </div>
+  );
+
   if (!puedeGestionarInventario) {
     return (
       <div className="dash">
+        {hero}
         <p className="muted small">Tu turno de hoy · {usuario?.nombre}</p>
         <div className="dash-grid">
           <div className="dash-card"><span className="dash-num">{nVentas}</span><span className="dash-label">Ventas hoy</span></div>
@@ -86,6 +104,7 @@ export default function Dashboard() {
   }
   return (
     <div className="dash">
+      {hero}
       <div className="dash-grid">
         <div className="dash-card">
           <span className="dash-num">{m.ventasHoy}</span>

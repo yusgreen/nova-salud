@@ -3,11 +3,25 @@ import { api } from "../services/api";
 import { useSale } from "../context/SaleContext";
 import { useAuth } from "../context/AuthContext";
 import { useProducts } from "../context/ProductContext";
+import { useConfig } from "../context/ConfigContext";
+import { formatearMoneda } from "../services/format";
 import { SkeletonStack } from "./Skeleton";
+import { IconCaja, IconPlus, IconSearch, IconTrash } from "./Icons";
+
+function iniciales(nombre = "") {
+  return nombre
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0])
+    .join("")
+    .toUpperCase();
+}
 
 export default function Caja() {
   const { lineas, agregar, cambiarCantidad, quitar, limpiar, total, unidades } = useSale();
   const { usuario } = useAuth();
+  const { config } = useConfig();
   const { productos, loading, error } = useProducts(); // <- lista desde el contexto, no fetch local
 
   const [busqueda, setBusqueda] = useState("");
@@ -20,8 +34,10 @@ export default function Caja() {
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
     if (!q) return productos;
-    return productos.filter(
-      (p) => p.nombre.toLowerCase().includes(q) || p.descripcion.toLowerCase().includes(q)
+    return productos.filter((p) =>
+      [p.nombre, p.descripcion, p.codigo, p.codigoBarras, p.categoria]
+        .filter(Boolean)
+        .some((valor) => String(valor).toLowerCase().includes(q))
     );
   }, [productos, busqueda]);
 
@@ -34,7 +50,7 @@ export default function Caja() {
     const data = await api.post("/sales", { detalles, nota: nota.trim() || undefined });
     // Pinto el total REAL de la respuesta. El stock de la lista bajara SOLO via socket,
     // sin refetch manual: eso demuestra el tiempo real de F3.
-    setMsgExito(`Venta registrada. Total S/ ${Number(data.venta.total).toFixed(2)} · Atendió: ${usuario?.nombre}`);
+    setMsgExito(`Venta registrada. Total ${formatearMoneda(data.venta.total, config.moneda)} · Atendió: ${usuario?.nombre}`);
     limpiar();
     setNota("");   // limpia la nota para el siguiente ticket (limpiar() solo toca el SaleContext)
   } catch (e) {
@@ -46,125 +62,227 @@ export default function Caja() {
   }
 }
 
+  const disponibles = productos.filter((p) => p.stock > 0).length;
+  const stockBajo = productos.filter(
+    (p) => p.stock > 0 && p.stock <= (p.stockMinimo ?? 0)
+  ).length;
+  const agotados = productos.filter((p) => p.stock <= 0).length;
+
   return (
-    <div className="caja-layout">
-      <section className="caja-panel">
-        <div className="caja-head">
-          <h2>Atención de venta</h2>
-          <input
-            className="search"
-            placeholder="Buscar medicamento…"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-          />
-        </div>
+    <div className="caja-page">
+      <div className="caja-layout">
+        <section className="caja-panel productos-panel">
+          <div className="caja-head">
+            <div>
+              <p className="caja-kicker">Punto de venta</p>
+              <h2>Atención de venta</h2>
+            </div>
+            <div className="caja-stats">
+              <span className="caja-stat">
+                <b>{disponibles}</b> disponibles
+              </span>
+              <span className={`caja-stat ${stockBajo > 0 ? "warn" : ""}`}>
+                <b>{stockBajo}</b> stock bajo
+              </span>
+              {agotados > 0 && (
+                <span className="caja-stat danger">
+                  <b>{agotados}</b> agotados
+                </span>
+              )}
+            </div>
+          </div>
 
-        {loading && <SkeletonStack count={5} variant="row" />}
-        {error && <p className="status error">{error}</p>}
+          <div className="search-wrap">
+            <IconSearch className="search-icon" aria-hidden="true" />
+            <input
+              className="search"
+              placeholder="Buscar por nombre, código o descripción…"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              aria-label="Buscar producto"
+            />
+            {busqueda && (
+              <button
+                className="search-clear"
+                onClick={() => setBusqueda("")}
+                aria-label="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
+          </div>
 
-        {!loading && !error && (
-          <ul className="producto-lista">
-            {filtrados.map((p) => {
-              const enVenta = lineas.find((l) => l.productoId === p.id);
-              const agotado = p.stock <= 0;
-              const limiteAlcanzado = enVenta && enVenta.cantidad >= p.stock;
-              return (
-                <li key={p.id} className={`producto-row ${agotado ? "agotado" : ""}`}>
-                  <div className="producto-info">
-                    <span className="producto-nombre">{p.nombre}</span>
-                    <span className="muted small">
-                      S/ {Number(p.precio).toFixed(2)} · stock {p.stock}
+          {loading && <SkeletonStack count={5} variant="row" />}
+          {error && <p className="status error">{error}</p>}
+
+          {!loading && !error && (
+            <ul className="producto-lista">
+              {filtrados.map((p) => {
+                const enVenta = lineas.find((l) => l.productoId === p.id);
+                const agotado = p.stock <= 0;
+                const limiteAlcanzado = enVenta && enVenta.cantidad >= p.stock;
+                const bajo = !agotado && p.stock <= (p.stockMinimo ?? 0);
+                return (
+                  <li key={p.id} className={`producto-row ${agotado ? "agotado" : ""}`}>
+                    <span className="producto-avatar" aria-hidden="true">
+                      {iniciales(p.nombre)}
                     </span>
-                  </div>
-                  <button
-                    className="btn-add"
-                    disabled={agotado || limiteAlcanzado}
-                    onClick={() => agregar(p)}
-                    title={
-                      agotado
-                        ? "Sin stock"
-                        : limiteAlcanzado
-                          ? "Límite de stock alcanzado"
-                          : "Agregar a la venta"
-                    }
-                  >
-                    {agotado
-                      ? "Agotado"
-                      : limiteAlcanzado
-                        ? `Máx (${enVenta.cantidad})`
-                        : enVenta
-                          ? `+ (${enVenta.cantidad})`
-                          : "+ Agregar"}
-                  </button>
+                    <div className="producto-info">
+                      <span className="producto-nombre">{p.nombre}</span>
+                      <div className="producto-meta">
+                        <span className="chip chip-precio">{formatearMoneda(p.precio, config.moneda)}</span>
+                        <span className={`chip chip-stock ${agotado ? "out" : bajo ? "low" : ""}`}>
+                          {agotado ? "Sin stock" : `${p.stock} en stock`}
+                        </span>
+                        {enVenta && (
+                          <span className="chip chip-ticket">En ticket: {enVenta.cantidad}</span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      className="btn-add"
+                      disabled={agotado || limiteAlcanzado}
+                      onClick={() => agregar(p)}
+                      title={
+                        agotado
+                          ? "Sin stock"
+                          : limiteAlcanzado
+                            ? "Límite de stock alcanzado"
+                            : "Agregar a la venta"
+                      }
+                    >
+                      {agotado ? (
+                        "Agotado"
+                      ) : limiteAlcanzado ? (
+                        "Máximo"
+                      ) : (
+                        <>
+                          <IconPlus className="btn-add-icon" aria-hidden="true" />
+                          Agregar
+                        </>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+              {filtrados.length === 0 && (
+                <li className="producto-vacio">
+                  <IconSearch className="empty-icon" aria-hidden="true" />
+                  <span>Sin resultados para “{busqueda}”.</span>
                 </li>
-              );
-            })}
-            {filtrados.length === 0 && <p className="muted">Sin resultados para “{busqueda}”.</p>}
-          </ul>
-        )}
-      </section>
+              )}
+            </ul>
+          )}
+        </section>
 
-      <aside className="caja-panel venta-panel">
-        <div className="caja-head">
-          <h2>Ticket actual</h2>
-          <span className="summary-item">{unidades} u.</span>
-        </div>
+        <aside className="caja-panel ticket-panel">
+          <div className="caja-head">
+            <div>
+              <p className="caja-kicker">Cobro</p>
+              <h2>Ticket actual</h2>
+            </div>
+            <span className="ticket-count">{unidades} u.</span>
+          </div>
 
-        {msgExito && <p className="status ok">{msgExito}</p>}
-        {msgError && <p className="status error">{msgError}</p>}
+          <div className="caja-mensajes" aria-live="polite">
+            {msgExito && <p className="status ok">{msgExito}</p>}
+            {msgError && <p className="status error">{msgError}</p>}
+          </div>
 
-        {lineas.length === 0 ? (
-          <p className="muted">Agrega productos para comenzar la venta.</p>
-        ) : (
-          <ul className="linea-lista">
-            {lineas.map((l) => (
-              <li key={l.productoId} className="linea-row">
-                <div className="linea-info">
-                  <span className="producto-nombre">{l.nombre}</span>
-                  <span className="muted small">S/ {Number(l.precio).toFixed(2)} c/u</span>
-                </div>
-                <div className="linea-controls">
-                  <button className="btn-step" onClick={() => cambiarCantidad(l.productoId, -1)}>−</button>
-                  <span className="linea-cant">{l.cantidad}</span>
-                  <button
-                    className="btn-step"
-                    onClick={() => cambiarCantidad(l.productoId, +1)}
-                    disabled={l.cantidad >= l.stockDisponible}
-                    title={l.cantidad >= l.stockDisponible ? "Límite de stock" : ""}
-                  >+</button>
-                  <button className="btn-quitar" onClick={() => quitar(l.productoId)} title="Quitar línea">✕</button>
-                </div>
-                <div className="linea-subtotal">S/ {(l.precio * l.cantidad).toFixed(2)}</div>
-              </li>
-            ))}
-          </ul>
-        )}
+          {lineas.length === 0 ? (
+            <div className="ticket-empty">
+              <IconCaja className="empty-icon" aria-hidden="true" />
+              <strong>El ticket está vacío</strong>
+              <span>Agrega productos del catálogo para comenzar la venta.</span>
+            </div>
+          ) : (
+            <ul className="linea-lista">
+              {lineas.map((l) => (
+                <li key={l.productoId} className="linea-row">
+                  <div className="linea-info">
+                    <span className="producto-nombre">{l.nombre}</span>
+                    <span className="muted small">{formatearMoneda(l.precio, config.moneda)} c/u</span>
+                  </div>
+                  <div className="linea-controls">
+                    <button
+                      className="btn-step"
+                      onClick={() => cambiarCantidad(l.productoId, -1)}
+                      aria-label={`Quitar una unidad de ${l.nombre}`}
+                    >
+                      −
+                    </button>
+                    <span className="linea-cant" aria-label={`Cantidad: ${l.cantidad}`}>
+                      {l.cantidad}
+                    </span>
+                    <button
+                      className="btn-step"
+                      onClick={() => cambiarCantidad(l.productoId, +1)}
+                      disabled={l.cantidad >= l.stockDisponible}
+                      title={l.cantidad >= l.stockDisponible ? "Límite de stock" : ""}
+                      aria-label={`Agregar una unidad de ${l.nombre}`}
+                    >
+                      +
+                    </button>
+                    <button
+                      className="btn-quitar"
+                      onClick={() => quitar(l.productoId)}
+                      title="Quitar línea"
+                      aria-label={`Quitar ${l.nombre} del ticket`}
+                    >
+                      <IconTrash className="btn-quitar-icon" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="linea-subtotal">
+                    {formatearMoneda(l.precio * l.cantidad, config.moneda)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
 
-        <div className="total-box">
-          <span>Total</span>
-          <strong>S/ {Number(total).toFixed(2)}</strong>
-        </div>
+          <div className="ticket-summary">
+            <div className="total-box">
+              <span>Total a cobrar</span>
+              <strong>{formatearMoneda(total, config.moneda)}</strong>
+            </div>
+            <div className="ticket-meta">
+              <span>
+                {lineas.length} producto{lineas.length === 1 ? "" : "s"}
+              </span>
+              <span>
+                {unidades} unidad{unidades === 1 ? "" : "es"}
+              </span>
+            </div>
+          </div>
 
-        <label className="nota-field">
-          Nota del ticket (opcional)
-          <textarea
-            value={nota}
-            onChange={(e) => setNota(e.target.value)}
-            placeholder="Ej.: paciente alérgico a penicilina, receta N° 123…"
-            maxLength={250}
-            rows={2}
-          />
-        </label>
+          <label className="nota-field">
+            <span className="nota-label-row">
+              <span>Nota del ticket (opcional)</span>
+              <span className="nota-count">{nota.length}/250</span>
+            </span>
+            <textarea
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              placeholder="Ej.: paciente alérgico a penicilina, receta N° 123…"
+              maxLength={250}
+              rows={2}
+            />
+          </label>
 
-        <button className="btn-primary btn-block" onClick={registrarVenta} disabled={busy || lineas.length === 0}>
-          {busy ? "Registrando…" : "Registrar venta"}
-        </button>
-        {lineas.length > 0 && (
-          <button className="btn-ghost btn-block" onClick={limpiar} disabled={busy}>
-            Vaciar ticket
+          <button
+            className="btn-primary btn-block"
+            onClick={registrarVenta}
+            disabled={busy || lineas.length === 0}
+          >
+            {busy ? "Registrando…" : `Cobrar ${formatearMoneda(total, config.moneda)}`}
           </button>
-        )}
-      </aside>
+          {lineas.length > 0 && (
+            <button className="btn-ghost btn-block" onClick={limpiar} disabled={busy}>
+              Vaciar ticket
+            </button>
+          )}
+        </aside>
+      </div>
     </div>
   );
 }

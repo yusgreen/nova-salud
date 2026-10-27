@@ -87,16 +87,18 @@ exports.login = async (req, res) => {
     const credentialsValidas =
       usuario && (await bcrypt.compare(password, usuario.passwordHash));
 
-      await auditar({
-        req,
-        accion: "LOGIN_FALLIDO",
-        entidad: "Usuario",
-        entidadId: null,
-        detalle: { email },
-      });
-
+    // Solo se audita el fallo cuando el login realmente falla.
     // Mensaje único para no revelar si el email existe o no.
     if (!credentialsValidas) {
+      await auditar({
+        req,
+        userId: usuario?.id ?? null,
+        accion: "LOGIN_FALLIDO",
+        entidad: "Usuario",
+        entidadId: usuario?.id ?? null,
+        detalle: { email: emailNorm },
+      });
+
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 

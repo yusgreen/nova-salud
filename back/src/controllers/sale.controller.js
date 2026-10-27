@@ -26,30 +26,40 @@ exports.getSales = async (req, res) => {
 // ---- POST /sales : registrar una venta (atomica) ----
 exports.createSale = async (req, res) => {
   // 1) Validacion de FORMA (fuera de la tx): estructura del body.
-const { detalles, nota } = req.body || {};  if (!Array.isArray(detalles) || detalles.length === 0) {
+  const { detalles, nota } = req.body || {};
+  if (!Array.isArray(detalles) || detalles.length === 0) {
     return res.status(400).json({ error: "detalles debe ser un array no vacio" });
   }
+
   let notaLimpia = null;
-if (typeof nota === "string" && nota.trim()) {
-  notaLimpia = nota.trim().slice(0, 250);
-}
+  if (typeof nota === "string" && nota.trim()) {
+    notaLimpia = nota.trim().slice(0, 250);
+  }
+
+  // Validacion estricta: si UNA linea es invalida, se rechaza TODA la venta.
+  // Ignorarla en silencio podria registrar un ticket incompleto sin avisar.
+  const lineaInvalida = detalles.some((d) => {
+    const pid = Number(d?.productoId);
+    const cant = Number(d?.cantidad);
+    return !Number.isInteger(pid) || pid <= 0 || !Number.isInteger(cant) || cant <= 0;
+  });
+
+  if (lineaInvalida) {
+    return res.status(400).json({
+      error: "Cada línea requiere productoId y cantidad enteros positivos",
+    });
+  }
 
   // Agrupo por productoId sumando cantidades (blindaje 5).
   const agrupadas = Object.values(
     detalles.reduce((acc, d) => {
       const pid = Number(d.productoId);
       const cant = Number(d.cantidad);
-      if (!Number.isInteger(pid) || pid <= 0) return acc;       // linea basura -> se ignora
-      if (!Number.isInteger(cant) || cant <= 0) return acc;
       if (!acc[pid]) acc[pid] = { productoId: pid, cantidad: 0 };
       acc[pid].cantidad += cant;
       return acc;
     }, {})
   );
-
-  if (agrupadas.length === 0) {
-    return res.status(400).json({ error: "ninguna linea de venta valida" });
-  }
 
   // El usuario que atiende sale del TOKEN, no del body (blindaje 2).
   const usuarioId = req.user.id;
@@ -105,6 +115,17 @@ if (typeof nota === "string" && nota.trim()) {
         await tx.producto.update({
           where: { id: l.productoId },
           data: { stock: { decrement: l.cantidad } },
+        });
+        await tx.movimientoStock.create({
+          data: {
+            productoId: l.productoId,
+            usuarioId,
+            tipo: "VENTA",
+            cantidad: -l.cantidad,
+            stockAnterior: l.stockAnterior,
+            stockNuevo: l.stockAnterior - l.cantidad,
+            motivo: `Venta #${venta.id}`,
+          },
         });
       }
 
@@ -182,8 +203,16 @@ exports.exportSalesExcel = async (req, res) => {
       orderBy: { fecha: "desc" },
     });
 
+    const config = await prisma.configuracion.upsert({
+      where: { id: 1 },
+      update: {},
+      create: { id: 1 },
+    });
+    const moneda = config.moneda;
+    const formatoMoneda = `"${moneda.replace(/"/g, "")}" #,##0.00`;
+
     const wb = new ExcelJS.Workbook();
-    wb.creator = "Nova Salud";
+    wb.creator = config.nombreNegocio;
     wb.created = new Date();
 
     // Paleta coherente con la marca (teal). ARGB con alpha FF.
@@ -203,7 +232,7 @@ exports.exportSalesExcel = async (req, res) => {
     rs.mergeCells("A2:H2");
     const totalGeneral = ventas.reduce((s, v) => s + v.total, 0);
     const st = rs.getCell("A2");
-    st.value = `Generado: ${new Date().toLocaleString("es-PE")}  ·  ${ventas.length} ticket(s)  ·  Total S/ ${totalGeneral.toFixed(2)}`;
+    st.value = `Generado: ${new Date().toLocaleString("es-PE")}  ·  ${ventas.length} ticket(s)  ·  Total ${moneda} ${totalGeneral.toFixed(2)}`;
     st.font = { size: 10, color: { argb: "FF64748B" } };
     st.alignment = { horizontal: "center" };
 
@@ -224,7 +253,7 @@ exports.exportSalesExcel = async (req, res) => {
         v.detalles.length, items, v.total, v.nota || "",
       ]);
       r.getCell(2).numFmt = "dd/mm/yyyy hh:mm";
-      r.getCell(7).numFmt = '"S/" #,##0.00';
+      r.getCell(7).numFmt = formatoMoneda;
       r.eachCell((c) => {
         c.border = box;
         if (i % 2 === 1) c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: GRAY } };
@@ -232,7 +261,7 @@ exports.exportSalesExcel = async (req, res) => {
     });
 
     const tr = rs.addRow(["", "", "", "", "", "", totalGeneral, "TOTAL"]);
-    tr.getCell(7).numFmt = '"S/" #,##0.00';
+    tr.getCell(7).numFmt = formatoMoneda;
     tr.font = { bold: true };
     tr.eachCell((c) => { c.border = { top: { style: "medium", color: { argb: TEAL } }, ...box }; });
 
@@ -264,8 +293,8 @@ exports.exportSalesExcel = async (req, res) => {
           l.cantidad, l.precioUnitario, l.cantidad * l.precioUnitario,
         ]);
         r.getCell(2).numFmt = "dd/mm/yyyy hh:mm";
-        r.getCell(5).numFmt = '"S/" #,##0.00';
-        r.getCell(6).numFmt = '"S/" #,##0.00';
+        r.getCell(5).numFmt = formatoMoneda;
+        r.getCell(6).numFmt = formatoMoneda;
         r.eachCell((c) => {
           c.border = box;
           if (idx % 2 === 1) c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: TEAL_SOFT } };

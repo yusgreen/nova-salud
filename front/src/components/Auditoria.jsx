@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 import { SkeletonLines } from "./Skeleton";
+import { IlustracionAuditoriaVacia } from "./Illustrations";
 const ACCIONES = [
   { v: "", l: "Todas" },
   { v: "LOGIN", l: "Login" },
@@ -52,7 +53,15 @@ if (loading) return <SkeletonLines count={6} />;  if (error) return <p className
       </div>
 
       {vistos.length === 0 ? (
-        <p className="muted">Sin registros para este filtro.</p>
+        <div className="empty-state compact">
+          <IlustracionAuditoriaVacia className="empty-art" />
+          <h3>{logs.length === 0 ? "Todavía no hay movimientos" : "Sin registros para este filtro"}</h3>
+          <p className="muted">
+            {logs.length === 0
+              ? "Las acciones importantes del sistema se van a registrar acá."
+              : "Probá con otra acción o volvé a “Todas”."}
+          </p>
+        </div>
       ) : (
         <div className="aud-scroll">
           <table className="aud-table">

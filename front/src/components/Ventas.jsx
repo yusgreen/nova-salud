@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useSales } from "../context/SalesContext";
+import { useConfig } from "../context/ConfigContext";
 import { descargarVentasExcel } from "../services/export";
+import { formatearMoneda } from "../services/format";
 import { SkeletonStack } from "./Skeleton";
+import { IlustracionVentasVacio } from "./Illustrations";
 function fechaLegible(iso) {
   try {
     return new Date(iso).toLocaleString("es-PE", {
@@ -12,6 +15,7 @@ function fechaLegible(iso) {
 
 export default function Ventas() {
   const { ventas, loading, error } = useSales();
+  const { config } = useConfig();
   const [exportando, setExportando] = useState(false);
   const [msgExport, setMsgExport] = useState("");
 
@@ -23,7 +27,13 @@ export default function Ventas() {
   }
 
 if (loading) return <SkeletonLines count={6} />;  if (error) return <p className="status error">{error}</p>;
-  if (ventas.length === 0) return <p className="muted">Todavía no hay ventas registradas.</p>;
+  if (ventas.length === 0) return (
+    <div className="empty-state">
+      <IlustracionVentasVacio className="empty-art" />
+      <h3>Todavía no hay ventas</h3>
+      <p className="muted">Las ventas que registres desde Caja van a aparecer acá, con su detalle y total.</p>
+    </div>
+  );
 
   return (
     <div>
@@ -47,7 +57,7 @@ if (loading) return <SkeletonLines count={6} />;  if (error) return <p className
                 </div>
                 <div className="venta-meta">
                   <span className="chip-rol">{v.atendidoPor?.nombre} · {v.atendidoPor?.rol}</span>
-                  <strong className="venta-total">S/ {Number(v.total).toFixed(2)}</strong>
+                  <strong className="venta-total">{formatearMoneda(v.total, config.moneda)}</strong>
                 </div>
               </header>
 
@@ -64,8 +74,8 @@ if (loading) return <SkeletonLines count={6} />;  if (error) return <p className
                     <tr key={l.productoId}>
                       <td>{l.producto?.nombre ?? "(producto eliminado)"}</td>
                       <td className="num">{l.cantidad}</td>
-                      <td className="num">S/ {Number(l.precioUnitario).toFixed(2)}</td>
-                      <td className="num">S/ {(l.cantidad * l.precioUnitario).toFixed(2)}</td>
+                      <td className="num">{formatearMoneda(l.precioUnitario, config.moneda)}</td>
+                      <td className="num">{formatearMoneda(l.cantidad * l.precioUnitario, config.moneda)}</td>
                     </tr>
                   ))}
                 </tbody>

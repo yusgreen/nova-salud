@@ -35,13 +35,20 @@ app.use("/auth", authRoutes);
 app.use("/products", productRoutes);
 app.use("/sales", salesRoutes);
 app.use("/audit", require("./routes/audit"));
+app.use("/settings", require("./routes/settings"));
 
 app.get("/", (req, res) => {
   res.json({ ok: true, service: "nova-salud-api" });
 });
 
-const PORT = process.env.PORT || 4000;
+// Solo escuchamos cuando el archivo se ejecuta directamente (npm run dev / node src/index.js).
+// Al importarlo desde las pruebas, exportamos app/server sin abrir un puerto fijo.
+if (require.main === module) {
+  const PORT = process.env.PORT || 4000;
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Nova Salud API en http://0.0.0.0:${PORT} + Socket.io listo`);
-});
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Nova Salud API en http://0.0.0.0:${PORT} + Socket.io listo`);
+  });
+}
+
+module.exports = { app, server, io };

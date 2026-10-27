@@ -7,6 +7,7 @@ const { requireAuth, requireRole } = require("../middleware/authMiddleware");
 
 // Lectura pública: cualquiera puede ver inventario.
 router.get("/", ctrl.getProducts);
+router.get("/:id/movimientos", requireAuth, requireRole("admin", "farmaceutico"), ctrl.getMovimientos);
 router.get("/:id", ctrl.getProduct);
 
 // Escritura protegida: solo admin o farmaceutico.

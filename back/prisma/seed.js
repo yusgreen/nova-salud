@@ -9,6 +9,7 @@ async function main() {
   // Si al revés, la FK de venta->usuario o detalle->producto revienta.
   await prisma.detalleVenta.deleteMany();
   await prisma.venta.deleteMany();
+  await prisma.movimientoStock.deleteMany();
   await prisma.producto.deleteMany();
   await prisma.usuario.deleteMany();
 
@@ -21,11 +22,11 @@ async function main() {
   // 5 productos de botica. Dos ya por debajo del umbral (stock <= stockMinimo)
   // para que el semaforo de alerta tenga algo que prender desde el dia 1.
   const productos = [
-    { nombre: "Paracetamol 500mg", descripcion: "Analgesico", precio: 5.5, imagen: "/images/paracetamol.svg", stock: 120, stockMinimo: 30 },
-    { nombre: "Ibuprofeno 400mg",  descripcion: "Antiinflamatorio", precio: 8.0, imagen: "/images/ibuprofeno.svg", stock: 12, stockMinimo: 20 }, // ALERTA
-    { nombre: "Amoxicilina 500mg", descripcion: "Antibiotico", precio: 15.0, imagen: "/images/amoxicilina.svg", stock: 60, stockMinimo: 15 },
-    { nombre: "Vitamina C 1g",     descripcion: "Suplemento", precio: 12.0, imagen: "/images/vitamina.svg", stock: 5, stockMinimo: 10 }, // ALERTA
-    { nombre: "Solucion salina",   descripcion: "Hidratante", precio: 6.0, imagen: "/images/salina.svg", stock: 200, stockMinimo: 40 },
+    { codigo: "P-0001", categoria: "Analgésico", nombre: "Paracetamol 500mg", descripcion: "Analgesico", precio: 5.5, imagen: "/images/paracetamol.svg", stock: 120, stockMinimo: 30 },
+    { codigo: "P-0002", categoria: "Antiinflamatorio", nombre: "Ibuprofeno 400mg",  descripcion: "Antiinflamatorio", precio: 8.0, imagen: "/images/ibuprofeno.svg", stock: 12, stockMinimo: 20 }, // ALERTA
+    { codigo: "P-0003", categoria: "Antibiótico", nombre: "Amoxicilina 500mg", descripcion: "Antibiotico", precio: 15.0, imagen: "/images/amoxicilina.svg", stock: 60, stockMinimo: 15 },
+    { codigo: "P-0004", categoria: "Suplemento", nombre: "Vitamina C 1g",     descripcion: "Suplemento", precio: 12.0, imagen: "/images/vitamina.svg", stock: 5, stockMinimo: 10 }, // ALERTA
+    { codigo: "P-0005", categoria: "Hidratante", nombre: "Solucion salina",   descripcion: "Hidratante", precio: 6.0, imagen: "/images/salina.svg", stock: 200, stockMinimo: 40 },
   ];
   for (const p of productos) await prisma.producto.create({ data: p });
 

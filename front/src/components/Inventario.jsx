@@ -1,13 +1,17 @@
 import { useMemo, useState } from "react";
 import { useProducts } from "../context/ProductContext";
 import { useAuth } from "../context/AuthContext";
+import { useConfig } from "../context/ConfigContext";
 import { api } from "../services/api";
+import { formatearMoneda } from "../services/format";
 import ProductForm from "./ProductForm";
 import ConfirmDialog from "./ConfirmDialog";
 import { SkeletonGrid } from "./Skeleton";
+import { IlustracionInventarioVacio } from "./Illustrations";
 export default function Inventario() {
   const { productos, loading, error, refrescar } = useProducts();
   const { puedeGestionarInventario } = useAuth();
+  const { config } = useConfig();
 
   const [modo, setModo] = useState(null);          // null | "crear" | "editar"
   const [editando, setEditando] = useState(null);  // producto o null
@@ -52,6 +56,20 @@ export default function Inventario() {
         )}
       </div>
 
+      {productos.length === 0 ? (
+        <div className="empty-state">
+          <IlustracionInventarioVacio className="empty-art" />
+          <h3>Tu inventario está vacío</h3>
+          <p className="muted">
+            {puedeGestionarInventario
+              ? "Creá tu primer producto para empezar a vender."
+              : "Todavía no hay productos cargados para vender."}
+          </p>
+          {puedeGestionarInventario && (
+            <button className="btn-primary" onClick={abrirCrear}>Crear primer producto</button>
+          )}
+        </div>
+      ) : (
       <section className="grid">
         {productos.map((p) => {
           const alerta = p.stock <= p.stockMinimo;
@@ -62,9 +80,16 @@ export default function Inventario() {
                 {alerta && <span className="badge">Reponer</span>}
               </div>
               <h3>{p.nombre}</h3>
+              {(p.codigo || p.categoria) && (
+                <p className="muted small card-meta">
+                  {[p.codigo, p.categoria].filter(Boolean).join(" · ")}
+                </p>
+              )}
               <p className="muted">{p.descripcion}</p>
-              <div className="price">S/ {Number(p.precio).toFixed(2)}</div>
-              <div className="stock">Stock: <strong>{p.stock}</strong> / mínimo: {p.stockMinimo}</div>
+              <div className="price">{formatearMoneda(p.precio, config.moneda)}</div>
+              <div className="stock">
+                Stock: <strong>{p.stock}</strong> {p.unidad || ""} / mínimo: {p.stockMinimo}
+              </div>
 
               {puedeGestionarInventario && (
                 <div className="card-actions">
@@ -76,6 +101,7 @@ export default function Inventario() {
           );
         })}
       </section>
+      )}
 
       {modo && (
         <ProductForm initial={editando} onClose={cerrarForm} />

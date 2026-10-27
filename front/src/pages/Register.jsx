@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import AuthLayout from "../components/AuthLayout";
 
 export default function Register({ onSwitch }) {
   const { register } = useAuth();
@@ -22,10 +23,12 @@ export default function Register({ onSwitch }) {
   }
 
   return (
-    <div className="auth-shell">
+    <AuthLayout>
       <form className="auth-card" onSubmit={onSubmit}>
-        <h1 className="brand">Nova Salud</h1>
-        <p className="muted">Creá tu cuenta de cajero</p>
+        <div className="auth-form-head">
+          <h1 className="auth-title">Creá tu cuenta</h1>
+          <p className="muted">Un acceso simple para empezar a vender</p>
+        </div>
         {error && <p className="status error">{error}</p>}
         <label>Nombre<input value={nombre} onChange={(e)=>setNombre(e.target.value)} required /></label>
         <label>Email<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" required /></label>
@@ -35,6 +38,6 @@ export default function Register({ onSwitch }) {
           ¿Ya tenés cuenta? <button type="button" className="link" onClick={onSwitch}>Ingresá</button>
         </p>
       </form>
-    </div>
+    </AuthLayout>
   );
 }
