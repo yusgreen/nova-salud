@@ -15,14 +15,14 @@ const registerSocketHandlers = require("./sockets/inventorySocket");
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173" }));
 app.use(express.json());
 
 // 1) Server HTTP + Socket.io creados TEMPRANO (el http.createServer del eslabon A
 //    paga su dividendo aca: io se monta sobre el mismo server, sin refactor).
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" },   // en produccion se restringe el origin (mejora futura, seccion 11)
+  cors: { origin: process.env.CORS_ORIGIN || "http://localhost:5173" },
 });
 setIo(io);                       // 2) guarda la ref para attachIo
 registerSocketHandlers(io);      // 3) registra el "quien escucha" (esqueleto)
@@ -40,6 +40,12 @@ app.use("/settings", require("./routes/settings"));
 
 app.get("/", (req, res) => {
   res.json({ ok: true, service: "nova-salud-api" });
+});
+
+app.use((err, req, res, next) => {
+  const status = err && Number.isInteger(err.status) ? err.status : 500;
+  const message = err && err.message ? err.message : "Error interno del servidor";
+  res.status(status).json({ error: message });
 });
 
 // Solo escuchamos cuando el archivo se ejecuta directamente (npm run dev / node src/index.js).

@@ -1048,9 +1048,9 @@ body {
 .caja-page .skel {
   background: linear-gradient(
     90deg,
-    rgba(17, 28, 48, 1) 25%,
+    var(--c-surface) 25%,
     rgba(148, 163, 184, 0.08) 37%,
-    rgba(17, 28, 48, 1) 63%
+    var(--c-surface) 63%
   );
   background-size: 200% 100%;
 }

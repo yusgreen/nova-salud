@@ -14,6 +14,7 @@ const ConfigContext = createContext(null);
 export function ConfigProvider({ children }) {
   const [config, setConfig] = useState(CONFIG_DEFAULTS);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let activo = true;
@@ -22,7 +23,9 @@ export function ConfigProvider({ children }) {
       .then((data) => {
         if (activo) setConfig({ ...CONFIG_DEFAULTS, ...data });
       })
-      .catch(() => {})
+      .catch((e) => {
+        if (activo) setError(e.message || "No se pudo cargar la configuración");
+      })
       .finally(() => {
         if (activo) setLoading(false);
       });
@@ -42,7 +45,7 @@ export function ConfigProvider({ children }) {
   }
 
   return (
-    <ConfigContext.Provider value={{ config, loading, actualizar }}>
+    <ConfigContext.Provider value={{ config, loading, error, actualizar }}>
       {children}
     </ConfigContext.Provider>
   );

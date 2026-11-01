@@ -26,7 +26,7 @@ export function useCountUp(target, duration = 700) {
     const tick = (now) => {
       const t = Math.min(1, (now - start) / duration);
       const eased = 1 - Math.pow(1 - t, 3);          // easeOutCubic
-      const current = from + diff * eased;
+      const current = Math.round(from + diff * eased);
       fromRef.current = current;                     // recuerda el último visible
       setValue(current);
       if (t < 1) rafRef.current = requestAnimationFrame(tick);

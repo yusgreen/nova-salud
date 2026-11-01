@@ -31,6 +31,8 @@ export default function Inventario() {
   const [motivoEntrada, setMotivoEntrada] = useState("");
   const [errorEntrada, setErrorEntrada] = useState("");
   const [guardandoEntrada, setGuardandoEntrada] = useState(false);
+  const [eliminando, setEliminando] = useState(null);
+  const [errorEliminar, setErrorEliminar] = useState("");
 
   const productosActivos = useMemo(
     () => productos.filter((p) => p.activo !== false),
@@ -146,7 +148,7 @@ export default function Inventario() {
     <>
       <div className="inv-head">
         <div className="summary">
-          <span className="summary-item">Productos: <strong>{productos.length}</strong></span>
+          <span className="summary-item">Productos: <strong>{productosActivos.length}</strong></span>
           <span className="summary-item danger">Bajo mínimo: <strong>{bajoMinimo.length}</strong></span>
           <span className="summary-item">Vence pronto: <strong>{conteoVencimientos.pronto}</strong></span>
           <span className="summary-item danger">Vencidos: <strong>{conteoVencimientos.vencidos}</strong></span>

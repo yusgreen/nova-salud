@@ -283,18 +283,20 @@ exports.createSale = async (req, res) => {
         });
       }
 
+      const totalRedondeado = Math.round(total * 100) / 100;
+
       let vuelto = null;
       if (metodoPago === "EFECTIVO" && montoRecibido !== undefined) {
-        if (montoRecibido < total) {
+        if (montoRecibido < totalRedondeado) {
           throw new Error("NEGOCIO:Monto recibido insuficiente");
         }
-        vuelto = Math.round((montoRecibido - total) * 100) / 100;
+        vuelto = Math.round((montoRecibido - totalRedondeado) * 100) / 100;
       }
 
             // 4) Creo la venta con sus lineas (nested write de Prisma).
       const venta = await tx.venta.create({
         data: {
-          total,
+          total: totalRedondeado,
           usuarioId,
           nota: notaLimpia,
           metodoPago,

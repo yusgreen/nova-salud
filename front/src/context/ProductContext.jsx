@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { api } from "../services/api";
 import { socket } from "../services/socket";
 
@@ -9,16 +9,18 @@ export function ProductProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [alertas, setAlertas] = useState([]); // notificaciones efímeras de bajo stock
+  const loadingRef = useRef(true);
 
   // Carga inicial del inventario (una sola vez, al montar el provider).
   // GET /products es publico, no necesita token; igual solo montamos con usuario.
   function refrescar() {
     setLoading(true);
+    loadingRef.current = true;
     api
       .get("/products")
       .then((d) => { setProductos(d); setError(""); })
       .catch((e) => setError(e.message || "No se pudo cargar el inventario"))
-      .finally(() => setLoading(false));
+      .finally(() => { loadingRef.current = false; setLoading(false); });
   }
 
   useEffect(() => { refrescar(); }, []);
@@ -51,7 +53,7 @@ export function ProductProvider({ children }) {
 
     // Al (re)conectar despues de una caida del server, refresco para recuperar eventos
     // que se perdieron mientras el socket estuvo abajo. Barato y robusto.
-    const onConnect = () => { if (!loading) refrescar(); };
+    const onConnect = () => { if (!loadingRef.current) refrescar(); };
 
     socket.on("stock_actualizado", onStock);
     socket.on("alerta_bajo_stock", onAlerta);

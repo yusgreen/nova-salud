@@ -37,14 +37,18 @@ export default function Caja() {
   const [montoRecibido, setMontoRecibido] = useState("");
   const [comprobante, setComprobante] = useState(null);
 
+  const montoRecibidoNumero =
+    metodoPago === "EFECTIVO" && montoRecibido !== "" ? Number(montoRecibido) : null;
+  const montoValido = montoRecibidoNumero !== null && Number.isFinite(montoRecibidoNumero);
   const vuelto =
-    metodoPago === "EFECTIVO" && montoRecibido !== ""
-      ? Number(montoRecibido) - total
+    metodoPago === "EFECTIVO" && montoRecibido !== "" && montoValido
+      ? montoRecibidoNumero - total
       : null;
   const montoInsuficiente =
     metodoPago === "EFECTIVO" &&
     montoRecibido !== "" &&
-    Number(montoRecibido) < total;
+    montoValido &&
+    montoRecibidoNumero < total;
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -68,7 +72,8 @@ export default function Caja() {
       metodoPago,
     };
     if (metodoPago === "EFECTIVO" && montoRecibido !== "") {
-      payload.montoRecibido = Number(montoRecibido);
+      const monto = Number(montoRecibido);
+      if (Number.isFinite(monto)) payload.montoRecibido = monto;
     }
     const data = await api.post("/sales", payload);
     // Pinto el total REAL de la respuesta. El stock de la lista bajara SOLO via socket,

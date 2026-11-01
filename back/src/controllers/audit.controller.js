@@ -17,7 +17,13 @@ exports.getAuditLogs = async (req, res) => {
     const where = {};
     if (req.query.accion) where.accion = String(req.query.accion);
     if (req.query.entidad) where.entidad = String(req.query.entidad);
-    if (req.query.userId) where.userId = Number(req.query.userId);
+    if (req.query.userId) {
+    const userId = Number(req.query.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ error: "El parámetro userId no es válido" });
+    }
+    where.userId = userId;
+  }
 
     const logs = await prisma.auditLog.findMany({
       where,
