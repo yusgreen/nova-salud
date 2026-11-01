@@ -104,6 +104,8 @@ nova-salud/
 - CORS en Render: el backend quedó con fallback producción `https://nova-salud-1.onrender.com` para el front desplegado en Render; se debe setear `CORS_ORIGIN` en el backend de Render con ese valor y redeploy para persistirlo.
 - Regla: durante el PASE de correcciones original se pidió no tocar backend (lógica/endpoints/schema); los fixes de auditoría posteriores sí los modificaron, con estas notas.
 
+- Regla: no hacer commit ni push sin autorización del usuario.
+
 ## Convenciones de codigo
 
 - Backend: CommonJS (`"type": "commonjs"`); rutas en plural; un controller por recurso; middleware de auth.
