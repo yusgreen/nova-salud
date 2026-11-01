@@ -99,6 +99,7 @@ nova-salud/
 - Tokens `--c-*` de `.caja-page` derivados de `--bg`, `--card`, `--border` y `--accent` (paleta verde) para tema claro y oscuro; sin hex azul ni gradientes azules en Caja.
 - Componente switch verde reutilizable (`.status-switch`) para toggles (Usuarios, Configuración compacto/demo); checkboxes estilizados con `accent-color: var(--accent)`.
 - Regla de archivos: guardar en UTF-8 sin BOM; no usar PowerShell `Set-Content`/`Out-File` para escribirlos.
+- Auditoría (2026-11): error handler global JSON en backend, CORS restringido (`CORS_ORIGIN`, fallback producción front Render), JWT fail-fast en producción, redondeo a 2 decimales en total de venta, validación `userId` auditoría, ProductContext stale closure corregido, Caja NaN corregido, ConfigContext expone error, Inventario estado faltante declarado, skeleton Caja con tokens.
 
 ## Convenciones de codigo
 
