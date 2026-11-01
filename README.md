@@ -1,4 +1,8 @@
 # Nova Salud 💊
+> la terminal o los logs de Render). Así se resuelve en minutos, no en horas.
+| Mètodo | Ruta | Auth | Qué hace |
+| --- | --- | :---: | --- |
+# Nova Salud 💊
 
 Sistema web de **inventario y ventas en tiempo real** para una botica. Trabajo
 entregable del curso de Full Stack Developer (entrega: 7 de noviembre).
@@ -27,6 +31,7 @@ Permite gestionar el catálogo de medicamentos, registrar ventas de forma
 8. [Paso 3 — Correr el FRONTEND en local](#8-paso-3-frontend)
 9. [Cómo usar la aplicación (y qué puede hacer cada rol)](#9-uso-y-roles)
 10. [Referencia de la API (endpoints)](#10-api)
+10.1 [Pruebas](#pruebas)
 11. [Eventos de Socket.io (tiempo real)](#11-socket)
 12. [Modelo de datos (las tablas)](#12-datos)
 13. [Variables de entorno (todas, con qué hace cada una)](#13-env)
@@ -94,7 +99,7 @@ precios reales) que un usuario malintencionado no pueda saltarse.
 | **API / endpoint** | Una URL del backend que hace algo, ej. `GET /products` = "dame la lista de productos". |
 | **JWT / token** | Una "credencial digital" que el backend entrega al hacer login y que el front manda en cada petición para probar quién es. Vive 1 hora y caduca solo. |
 | **Hash (bcrypt)** | La contraseña **nunca** se guarda en texto. Se guarda transformada (hash) y no se puede revertir. Por eso nadie, ni el profe, ve tu contraseña real. |
-| **WebSocket / Socket.io** | Un canal bidirectional en vivo: el backend puede "empujar" mensajes al front sin que el front los pida (así se actualiza el stock solo). |
+| **WebSocket / Socket.io** | Un canal bidireccional en vivo: el backend puede "empujar" mensajes al front sin que el front los pida (así se actualiza el stock solo). |
 | **ORM (Prisma)** | Herramienta que traduce código JS a operaciones de base de datos, con un esquema (`schema.prisma`) que define las tablas. |
 | **Render** | El servicio donde se **despliega** (se publica a internet) el proyecto para que tenga una URL pública. Tiene plan gratis. |
 | **Desplegar / deploy** | Subir el proyecto a un servidor de internet para que cualquiera con la URL lo pueda abrir. |
@@ -149,7 +154,7 @@ debe invitarlos primero.**
    `https://github.com/invitations`).
 2. Aceptan la invitación. **Sin aceptar esto, el clone va a fallar.**
 
-> Si ya aceptaron y igual falla el `git clone`,Usually es porque están logueados
+> Si ya aceptaron y igual falla el `git clone`, normalmente es porque están logueados
 > en Git con **otra** cuenta de GitHub. Verifíquenlo con:
 > ```bash
 > gh auth status        # si tienen GitHub CLI
@@ -161,17 +166,17 @@ debe invitarlos primero.**
 <a name="5-paso-1-clonar"></a>
 ## 5. Paso 1 — Clonar el repositorio
 
-"Clonar" = descargar el proyecto completo a tu PC. Elegí **una** de las dos vías.
+"Clonar" = descargar el proyecto completo a tu PC. Elige **una** de las dos vías.
 
 ### Vía recomendada: HTTPS (la más simple)
 
-1. Abrí Git Bash, PowerShell o la terminal de VS Code.
-2. Navigá a la carpeta donde quieras guardar el proyecto, por ejemplo:
+1. Abre Git Bash, PowerShell o la terminal de VS Code.
+2. Navega a la carpeta donde quieras guardar el proyecto, por ejemplo:
    ```bash
    cd C:\Users\TU-USUARIO\Desktop      # Windows
    cd ~/Desktop                        # Mac/Linux
    ```
-3. Cloná con la URL HTTPS:
+3. Clona con la URL HTTPS:
    ```bash
    git clone https://github.com/yusgreen/nova-salud.git
    ```
@@ -180,29 +185,29 @@ debe invitarlos primero.**
    con GitHub y listo. Si te pide contraseña, GitHub **ya no acepta contraseñas**:
    necesitas un *Personal Access Token* (PAT). Créalo en
    `GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)`,
-   con scope `repo`, y usalo como contraseña.
-5. Entrá a la carpeta:
+   con scope `repo`, y úsalo como contraseña.
+5. Entra a la carpeta:
    ```bash
    cd nova-salud
    ls            # (Windows: dir)  deberías ver: back/  front/  README.md  NOTAS.md  .gitignore
    ```
 
-### Vía alternativa: SSH (si ya tenés clave SSH configurada)
+### Vía alternativa: SSH (si ya tienes clave SSH configurada)
 
 ```bash
 git clone git@github.com:yusgreen/nova-salud.git
 ```
 
 Requiere que tu clave pública esté agregada en tu cuenta de GitHub
-(*Settings → SSH and GPG keys*). Si no sabés qué es esto, usá HTTPS.
+(*Settings → SSH and GPG keys*). Si no sabes qué es esto, usa HTTPS.
 
 **Deberías ver** una carpeta `nova-salud/` con `back/`, `front/`, `README.md`,
 `NOTAS.md` y `.gitignore`. Si ves eso, el clone salió bien.
 
-> **Trabajo en equipo:** antes de ponerte a codear, siempre hacé `git pull` para
+> **Trabajo en equipo:** antes de ponerte a codear, siempre haz `git pull` para
 > bajar los cambios de los demás; y después de tus cambios, `git add` + `git commit`
 > + `git push`. Si dos editan el mismo archivo sin pull previo, Git marca conflicto
-> y hay que resolverlo a mano. Preguntá en el grupo quién está tocando qué.
+> y hay que resolverlo a mano. Pregunta en el grupo quién está tocando qué.
 
 ---
 
@@ -219,15 +224,15 @@ nova-salud/
 │   ├── package.json       ← dependencias y scripts del backend
 │   ├── .env.example       ← plantilla de configuración (se copia a .env)
 │   ├── prisma/
-│   │   ├── schema.prisma  ← las tablas de la base de datos (Usuario, Producto, Venta, DetalleVenta)
+│   │   ├── schema.prisma  ← las tablas (Usuario, Producto, MovimientoStock, Venta, DetalleVenta, Configuracion, AuditLog)
 │   │   └── seed.js        ← datos de demo (admin + 5 productos)
 │   └── src/
 │       ├── index.js       ← arranca el servidor HTTP + Socket.io
 │       ├── prisma.js      ← instancia única de Prisma (el cliente de BD)
 │       ├── config/auth.js ← secreto y expiración del JWT
-│       ├── controllers/   ← la lógica de cada ruta (auth, product, sale)
+│       ├── controllers/   ← la lógica de cada ruta (auth, product, sale, audit, settings)
 │       ├── middleware/    ← filtros que corren ANTES de la lógica (auth, attachIo)
-│       ├── routes/        ← el mapa de URLs (/auth, /products, /sales)
+│       ├── routes/        ← el mapa de URLs (/auth, /products, /sales, /audit, /settings)
 │       └── sockets/       ← quién escucha las conexiones de Socket.io
 │
 └── front/                 ← LA INTERFAZ (React + Vite + Socket.io-client)
@@ -237,26 +242,26 @@ nova-salud/
     ├── index.html         ← el HTML raíz que carga React
     └── src/
         ├── main.jsx       ← punto de entrada, monta los Providers globales
-        ├── App.jsx        ← decide qué vista mostrar (Login / Inventario / Caja / Ventas)
-        ├── styles.css     ← TODO el estilo (modo claro/oscuro automático)
+        ├── App.jsx        ← decide qué vista mostrar (Login / Dashboard / Inventario / Caja / Ventas / Auditoría / Configuración)
+        ├── styles.css     ← tokens de diseño (tema claro/oscuro verde) + animaciones + responsive
         ├── services/
         │   ├── api.js     ← wrapper de fetch: pone el token y la URL base en cada llamada
         │   └── socket.js  ← instancia única de Socket.io (singleton)
-        ├── context/       ← estado global compartido (Auth, Product, Sale, Sales)
+        ├── context/       ← estado global compartido (Auth, Product, Sale, Sales, Theme, Preferencias)
         ├── components/    ← piezas de pantalla (Inventario, Caja, Ventas, Topbar, Toast, Modal…)
         └── pages/         ← Login.jsx y Register.jsx
 ```
 
-**Regla de oro para no perderse:** si quieres cambiar **cómo se ve** algo, mirá
+**Regla de oro para no perderse:** si quieres cambiar **cómo se ve** algo, mira
 `front/`. Si quieres cambiar **qué hace** el servidor (validaciones, stock,
-permisos), mirá `back/`. La base de datos se define en `back/prisma/schema.prisma`.
+permisos), mira `back/`. La base de datos se define en `back/prisma/schema.prisma`.
 
 ---
 
 <a name="7-paso-2-backend"></a>
 ## 7. Paso 2 — Correr el BACKEND en local
 
-Abrí **una terminal** y seguí estos pasos. El backend escucha en
+Abre **una terminal** y sigue estos pasos. El backend escucha en
 `http://localhost:4000`.
 
 ### 7.1 Instalar dependencias
@@ -270,7 +275,7 @@ npm install
 Tarda unos segundos. **Deberías ver** al final algo como `added N packages`.
 
 > Si te dice `npm warn deprecated ...` o `found 0 vulnerabilities`, es normal, no
-> es un error. Ignoralo.
+> es un error. Ignóralo.
 
 ### 7.2 Crear el archivo `.env`
 
@@ -284,8 +289,8 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-*Qué hace:* crea `.env` con los mismos valores de ejemplo. Abrilo con VS Code y
-confirmá que tenga estas tres líneas (los valores de ejemplo ya sirven para local):
+*Qué hace:* crea `.env` con los mismos valores de ejemplo. Ábrelo con VS Code y
+confirma que tenga estas tres líneas (los valores de ejemplo ya sirven para local):
 
 ```env
 DATABASE_URL="file:./dev.db"
@@ -316,7 +321,7 @@ SQLite database dev.db created at file:./dev.db
 
 > Vas a ver un warning: `The configuration property 'package.json#prisma' is
 > deprecated`. **Es ruido benigno**, significa que Prisma 7 va a mover esa config
-> a otro archivo. Nosotros usamos Prisma 6 a propósito (ver §16). Ignoralo.
+> a otro archivo. Nosotros usamos Prisma 6 a propósito (ver §16). Ignóralo.
 
 ### 7.4 Sembrar datos de demo
 
@@ -331,7 +336,7 @@ prueba. Sin esto, la base de datos está vacía y no vas a poder loguearte.
 Seed OK: 1 admin (hasheado) + 5 productos (2 en alerta de bajo stock).
 ```
 
-Los productos del seed (memorizalos, te sirven para verificar después):
+Los productos del seed (memorízalos, te sirven para verificar después):
 
 | Producto | Precio | Stock | Stock mínimo | ¿Bajo mínimo? |
 | --- | --- | --- | --- | --- |
@@ -348,21 +353,21 @@ npm run dev
 ```
 
 *Qué hace:* corre `node --watch src/index.js`. El `--watch` reinicia el servidor
-solo cada vez que guardás un archivo del backend (cómodo para desarrollar).
+solo cada vez que guardas un archivo del backend (cómodo para desarrollar).
 **Deberías ver:**
 ```
 Nova Salud API en http://localhost:4000 + Socket.io listo
 ```
 
-Dejá esta terminal **abierta y corriendo**. El backend tiene que estar vivo para
+Deja esta terminal **abierta y corriendo**. El backend tiene que estar vivo para
 que el front funcione.
 
 ### 7.6 Verificar que el backend responde (sin front)
 
-Abrí **otra terminal** (o el navegador) y probá:
+Abre **otra terminal** (o el navegador) y prueba:
 
 ```bash
-# En el navegador, abrí:  http://localhost:4000/products
+# En el navegador, abre:  http://localhost:4000/products
 # O desde PowerShell:
 Invoke-RestMethod http://localhost:4000/products | Select-Object id, nombre, stock
 ```
@@ -380,7 +385,7 @@ Si ves `[]` (lista vacía), falta el Paso 7.4 (seed). Si da error de conexión, 
 El front le habla al backend; si el backend está apagado, el front va a mostrar
 "Cargando inventario…" para siempre o un error de red.
 
-Abrí **una segunda terminal**:
+Abre **una segunda terminal**:
 
 ### 8.1 Instalar dependencias
 
@@ -398,7 +403,7 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-Confirmá que tenga:
+Confirma que tenga:
 
 ```env
 VITE_API_URL=http://localhost:4000
@@ -411,8 +416,8 @@ VITE_SOCKET_URL=http://localhost:4000
 | `VITE_SOCKET_URL` | La URL del backend para el WebSocket (tiempo real). |
 
 > En Vite, las variables de entorno **deben** empezar con `VITE_` para que el
-> código las pueda leer. Si les ponés otro nombre, no funcionan. Y se **hornean en
-> el build**: si cambiás el `.env`, hay que reiniciar `npm run dev`.
+> código las pueda leer. Si les pones otro nombre, no funcionan. Y se **hornean en
+> el build**: si cambias el `.env`, hay que reiniciar `npm run dev`.
 
 ### 8.3 Levantar el front
 
@@ -426,19 +431,19 @@ npm run dev
   ➜  Local:   http://localhost:5173/
 ```
 Y se abre el navegador solo (configuramos `open: true` en `vite.config.js`). Si no
-se abre, entrá manual a `http://localhost:5173`.
+se abre, entra manual a `http://localhost:5173`.
 
 ### 8.4 Verificar de punta a punta
 
 1. En `http://localhost:5173` deberías ver la pantalla de **Login**.
-2. Iniciá sesión con las credenciales del seed:
+2. Inicia sesión con las credenciales del seed:
    - Email: `admin@novasalud.pe`
    - Contraseña: `admin123`
 3. Deberías entrar al **Inventario** con las 5 tarjetas, el chip
    `Productos: 5`, `Bajo mínimo: 2`, y los badges **Reponer** en Ibuprofeno y
    Vitamina C.
 
-Si llegaste hasta acá, **el proyecto corre completo en tu PC**. 🎉
+Si llegaste hasta aquí, **el proyecto corre completo en tu PC**. 🎉
 
 ---
 
@@ -451,36 +456,39 @@ según tu rol:
 
 | Pestaña | Qué hace | Quién la ve |
 | --- | --- | --- |
-| **Inventario** | Muestra los medicamentos con precio, stock y un semáforo (badge *Reponer* si `stock ≤ stock mínimo`). Si eres admin/farmacéutico, ves botones **Editar / Eliminar** y **+ Nuevo producto** (abren un modal). | Todos leen; solo admin/farma editan. |
-| **Caja** | La pantalla de venta: buscás un medicamento, lo agregás al ticket, ajustás cantidades y presionás **Registrar venta**. El total lo calcula el backend, no el front. | Todos los roles. |
-| **Ventas** | Historial de tickets: fecha, total, quién atendió y las líneas de cada venta. Se actualiza **en vivo** cuando alguien vende. | Solo admin/farma. |
+| **Dashboard** | Panel de control con metricas del dia (ventas, recaudado, ticket promedio, unidades, producto mas vendido, stock critico, vencimientos y recaudado por metodo de pago). | Todos los roles (vista adaptada por rol). |
+| **Inventario** | Muestra los medicamentos con precio, stock, vencimiento y semaforo de reposicion. Admin/farma pueden crear, editar, activar/desactivar, recibir mercaderia y filtrar por vencimiento o inactivos. | Todos leen; solo admin/farma editan. |
+| **Caja** | La pantalla de venta: buscas un medicamento, lo agregas al ticket, eliges metodo de pago, calculas vuelto y presionas Cobrar. El total y el vuelto los calcula el backend. | Todos los roles. |
+| **Ventas** | Historial de tickets con filtros por fecha/usuario, paginacion, reimpresion de comprobante, anulacion y exportacion Excel. Se actualiza en vivo. | Solo admin/farma. |
+| **Cierre de caja** | Resumen por fecha y usuario: cantidad de ventas, total por metodo de pago, efectivo esperado y anuladas. Permite imprimir o exportar Excel. | Todos los roles (cada uno ve solo lo propio; admin/farma ven todos). |
+| **Usuarios** | Gestion de usuarios, roles, activacion/desactivacion y alta de usuarios. | Solo admin. |
+| **Auditoria** | Historial de acciones del sistema (login, ventas, anulaciones, productos, entradas de stock, usuarios y configuracion) con diff de cambios. | Solo admin/farma. |
+| **Configuracion** | Ajustes globales (nombre, lema, moneda, umbral de stock, ayuda demo) y personales (tema claro/oscuro/sistema, modo compacto, tamano de fuente, formato de fecha, filas por pagina). | Solo admin (el cajero y el farmaceutico no ven esta pestana). |
 
-### Los tres roles y sus permisos
+| Rol | Ver Dashboard | Leer inventario | Editar/borrar inventario | Vender (caja) | Ver historial de ventas | Ver Auditoría |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **admin** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **farmaceutico** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **cajero** | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
 
-| Rol | Leer inventario | Editar/borrar inventario | Vender (caja) | Ver historial de ventas |
-| --- | :---: | :---: | :---: | :---: |
-| **admin** | ✅ | ✅ | ✅ | ✅ |
-| **farmaceutico** | ✅ | ✅ | ✅ | ✅ |
-| **cajero** | ✅ | ❌ | ✅ | ❌ |
-
-> **Cómo se prueba el registro de un cajero:** en la pantalla de Login, clickeá
-> *Registrate*, completá nombre/email/contraseña. El backend **fuerza** el rol
+> **Cómo se prueba el registro de un cajero:** en la pantalla de Login, haz clic en
+> *Regístrate*, completa nombre/email/contraseña. El backend **fuerza** el rol
 > `cajero` en el registro público (nadie puede auto-crearse admin). Al registrarte
-> entrás directo (login automático).
+> entras directo (login automático).
 
-### La magia del tiempo real (probala con dos pestañas)
+### La magia del tiempo real (pruébala con dos pestañas)
 
-1. Abrí `http://localhost:5173` en **dos pestañas** del navegador y logueate como
+1. Abre `http://localhost:5173` en **dos pestañas** del navegador y inicia sesión como
    admin en las dos.
-2. En la pestaña A, andá a **Caja** y registrá una venta (ej. Paracetamol ×2).
-3. Mirá la pestaña B (en Inventario o en Ventas): **el stock baja solo y el ticket
+2. En la pestaña A, ve a **Caja** y registra una venta (ej. Paracetamol ×2).
+3. Mira la pestaña B (en Inventario o en Ventas): **el stock baja solo y el ticket
    aparece solo**, sin que toques nada ni recargues.
 
 Eso es Socket.io: el backend emite `stock_actualizado`, `alerta_bajo_stock` y
 `venta_registrada`, y todos los clientes conectados los reciben en vivo.
 
 > **Detalle de sesión:** el login vive en el `localStorage` del navegador, que es
-> **compartido entre pestañas del mismo sitio**. Si en una pestaña hacés *Salir*,
+> **compartido entre pestañas del mismo sitio**. Si en una pestaña haces *Salir*,
 > la otra también se desloguea sola (sincronizamos eso con el evento `storage` del
 > navegador). Es a propósito: una sesión por navegador.
 
@@ -506,16 +514,50 @@ header `Authorization: Bearer <token>` (el token que devuelve `/auth/login`).
 | --- | --- | :---: | --- |
 | GET | `/products` | ❌ | Lista todos los productos. |
 | GET | `/products/:id` | ❌ | Un producto por id. |
+| GET | `/products/:id/movimientos` | admin/farma | Historial de movimientos de stock (INICIAL, AJUSTE, VENTA, ANULACION, ENTRADA). |
 | POST | `/products` | 🔒 admin/farma | Crea producto (whitelist de campos). Devuelve 201. |
 | PUT | `/products/:id` | 🔒 admin/farma | Actualiza producto. |
-| DELETE | `/products/:id` | 🔒 admin/farma | Borra producto. **409 si tiene ventas históricas** (trazabilidad). |
-
-### Ventas (`/sales`)
+| PUT | `/products/:id` | admin/farma | Actualiza producto (incluye activo). |
+| PUT | `/products/:id/estado` | admin/farma | Activa o desactiva un producto. |
+| POST | `/products/:id/entrada` | admin/farma | Recibe mercaderia: suma stock, crea movimiento ENTRADA y audita STOCK_ENTRY. |
+| DELETE | `/products/:id` | admin/farma | Borra producto. **409 si tiene ventas historicas** (trazabilidad). |
+| Metodo | Ruta | Auth | Que hace |
+| --- | --- | :---: | --- |
+| POST | `/sales` | todos los roles | Registra venta atomica: valida stock, congela precio de BD, crea venta, descuenta stock, emite eventos. Body: `{ detalles: [{ productoId, cantidad }], metodoPago?, montoRecibido?, nota? }`.
+| GET | `/sales` | admin/farma | Historial con lineas, producto y quien atendio (sin passwordHash). Filtros opcionales: `desde`, `hasta`, `usuarioId`. 403 para cajero.
+| GET | `/sales/mi-turno` | todos los roles | Ventas del usuario autenticado.
+| GET | `/sales/cierre` | todos los roles | Cierre de caja por fecha y usuario (totales por metodo, efectivo esperado, anuladas).
+| GET | `/sales/export` | admin/farma | Exporta a Excel (respeta filtros y excluye anuladas).
+| POST | `/sales/:id/anular` | admin/farma | Anula una venta (motivo >= 5), repone stock y audita SALE_VOID.
+### Auditoría (`/audit`)
 
 | Método | Ruta | Auth | Qué hace |
 | --- | --- | :---: | --- |
-| POST | `/sales` | 🔒 todos los roles | Registra venta **atómica**: valida stock, congela precio de BD, crea venta, descuenta stock, emite eventos. Body: `{ detalles: [{ productoId, cantidad }] }`. **No** manda precio ni total: el backend los calcula. |
-| GET | `/sales` | 🔒 admin/farma | Historial con líneas, producto y quién atendió (**sin** `passwordHash`). 403 para cajero. |
+| GET | `/audit` | 🔒 admin/farma | Lista el registro de acciones del sistema (login, ventas, productos, configuración). |
+
+### Configuración (`/settings`)
+
+| Método | Ruta | Auth | Qué hace |
+| --- | --- | :---: | --- |
+| GET | `/settings` | ❌ | Devuelve la configuración global (pública). |
+| PUT | `/settings` | 🔒 admin | Actualiza la configuración global y audita los cambios. |
+
+
+### Usuarios (`/users`)
+
+| Metodo | Ruta | Auth | Que hace |
+| --- | --- | :---: | --- |
+| GET | `/users` | admin | Lista usuarios sin passwordHash. |
+| POST | `/users` | admin | Crea usuario con rol elegido. |
+| PUT | `/users/:id` | admin | Actualiza nombre y/o rol. |
+| PUT | `/users/:id/estado` | admin | Activa o desactiva un usuario. |
+
+### Perfil propio (`/auth`)
+
+| Metodo | Ruta | Auth | Que hace |
+| --- | --- | :---: | --- |
+| PUT | `/auth/me` | usuario | Actualiza el nombre del usuario autenticado. |
+| PUT | `/auth/password` | usuario | Cambia la contrasena validando la actual. |
 
 ### Ejemplo de login + venta desde PowerShell (para probar sin front)
 
@@ -529,10 +571,27 @@ $venta = @{ detalles = @( @{ productoId = 1; cantidad = 2 } ) }
 Invoke-RestMethod -Uri http://localhost:4000/sales -Method Post -Headers @{ Authorization = "Bearer $tok" } -ContentType "application/json" -Body ($venta | ConvertTo-Json -Compress)
 ```
 
-> **Trampa de PowerShell:** si usás `curl.exe -d` con un JSON de `ConvertTo-Json`,
-> las comillas se mangleán y el backend responde 400 con `SyntaxError`. Usá
-> `Invoke-RestMethod` (como arriba) o agregá `-Compress` al `ConvertTo-Json`.
+> **Trampa de PowerShell:** si usas `curl.exe -d` con un JSON de `ConvertTo-Json`,
+> las comillas se deforman y el backend responde 400 con `SyntaxError`. Usa
+> `Invoke-RestMethod` (como arriba) o agrega `-Compress` al `ConvertTo-Json`.
 > Esto ya nos mordió; está en §15.
+
+---
+
+<a name="pruebas"></a>
+## 10.1 Pruebas
+
+El backend incluye 53 pruebas automatizadas con `node:test`:
+
+```bash
+cd back
+npm test
+```
+
+Cubren: autenticacion y auditoria, perfil propio, permisos por rol, ventas atomicas (precio de BD, descuento de stock, rollback), filtros de ventas, validacion de productos, inventario ampliado y trazabilidad, configuracion, gestion de usuarios, metodos de pago, anulacion de ventas, productos inactivos y entradas de mercaderia, y cierre de caja.
+descuento de stock, rollback por stock insuficiente), validación de productos,
+inventario ampliado y trazabilidad, y configuración (lectura pública, PUT solo
+admin, validaciones y auditoría).
 
 ---
 
@@ -549,8 +608,9 @@ por él (la única puerta de escritura es `POST /sales` con token).
 | `stock_actualizado` | `[{ id, nombre, stock }]` | Baja el número de stock en Inventario y Caja **sin recargar**. |
 | `alerta_bajo_stock` | `[{ id, nombre, stockNuevo, stockMinimo }]` (solo los que cruzaron el umbral) | Muestra un **toast** rojo "Reponer: …". |
 | `venta_registrada` | `{ id, fecha, total, atendidoPor:{id,nombre,rol}, detalles:[…] }` | Agrega el ticket al historial de **Ventas** en vivo. |
+| `venta_anulada` | `{ id, estado, anuladaEn, motivoAnulacion, anuladaPor }` | Marca la venta como anulada en **Ventas** en vivo. |
 
-Si vas a tocar el front y querés reaccionar a una venta, suscribite en el
+Si vas a tocar el front y quieres reaccionar a una venta, suscríbete en el
 contexto correspondiente (`ProductContext` para stock/alerta, `SalesContext` para
 historial). **No** conectes ni desconectes el socket desde otro lado: el dueño de
 la conexión es `ProductContext` (singleton, un solo dueño).
@@ -560,17 +620,20 @@ la conexión es `ProductContext` (singleton, un solo dueño).
 <a name="12-datos"></a>
 ## 12. Modelo de datos (las tablas)
 
-Fuente de verdad: `back/prisma/schema.prisma`. Resumen de los 4 modelos:
+Fuente de verdad: `back/prisma/schema.prisma`. Resumen de los 7 modelos:
 
 | Modelo | Campos principales | Relación |
 | --- | --- | --- |
-| **Usuario** | `id`, `nombre`, `email` (único), `passwordHash` (nunca se expone), `rol` (`admin` \| `farmaceutico` \| `cajero`) | 1 Usuario → muchas Ventas (`atendidoPor`). |
-| **Producto** | `id`, `nombre`, `descripcion`, `precio` (Float), `stock` (Int), `stockMinimo` (Int), `imagen` (String) | 1 Producto → muchos DetalleVenta. |
-| **Venta** | `id`, `fecha` (DateTime), `total` (Float), `usuarioId` (FK) | 1 Venta → muchos DetalleVenta (`detalles`). |
+| **Usuario** | `id`, `nombre`, `email` (unico), `passwordHash` (nunca se expone), `rol` (`admin` \| `farmaceutico` \| `cajero`), `activo` (Boolean) | 1 Usuario -> muchas Ventas (`atendidoPor`) y ventas anuladas. |
+| **Producto** | `id`, `nombre`, `descripcion`, `precio` (Float), `stock` (Int), `stockMinimo` (Int), `imagen` (String), `codigo` (SKU, unico, autogenerado `P-0001`), `codigoBarras` (unico), `categoria`, `proveedor`, `unidad`, `precioCompra` (Float), `fechaVencimiento` (DateTime), `activo` (Boolean) | 1 Producto -> muchos DetalleVenta y MovimientoStock. |
+| **Venta** | `id`, `fecha` (DateTime), `total` (Float), `usuarioId` (FK), `metodoPago` (EFECTIVO/TARJETA/YAPE_PLIN), `montoRecibido` (Float?), `vuelto` (Float?), `estado` (COMPLETADA/ANULADA), `anuladaPorId` (FK?), `anuladaEn` (DateTime?), `motivoAnulacion` (String?) | 1 Venta -> muchos DetalleVenta. |
 | **DetalleVenta** | `id`, `ventaId` (FK), `productoId` (FK), `cantidad` (Int), `precioUnitario` (Float, congelado al vender) | Une Venta ↔ Producto. |
+| **MovimientoStock** | `id`, `productoId` (FK), `usuarioId` (FK), `tipo` (INICIAL \| AJUSTE \| VENTA \| ANULACION \| ENTRADA), `cantidad` (delta), `stockAnterior`, `stockNuevo`, `motivo`, `creadoEn` | Trazabilidad de stock por producto. |
+| **Configuracion** | `id` (único = 1), `nombreNegocio`, `lema`, `moneda`, `umbralStockBajo`, `mostrarAyudaDemo`, `actualizadoEn` | Ajustes globales de la botica. |
+| **AuditLog** | `id`, `userId` (FK), `accion`, `entidad`, `entidadId`, `detalle` (JSON), `ip`, `userAgent`, `fecha` | Registro de acciones del sistema. |
 
 **Por qué `precioUnitario` está en DetalleVenta y no se calcula al leer:** cuando
-vendés, el precio de ese momento se **congela** en la línea. Si mañana sube el
+vendes, el precio de ese momento se **congela** en la línea. Si mañana sube el
 precio del producto, el ticket histórico sigue mostrando lo que realmente se
 cobró. Eso es trazabilidad financiera.
 
@@ -602,7 +665,7 @@ Ningún `.env` se sube a Git (está en `.gitignore`). Cada carpeta tiene su
 | `VITE_API_URL` | `http://localhost:4000` | la URL pública del backend (§14) |
 | `VITE_SOCKET_URL` | `http://localhost:4000` | la URL pública del backend (§14) |
 
-> Recordá: en Vite solo se leen las que empiezan con `VITE_`, y se **hornean en el
+> Recuerda: en Vite solo se leen las que empiezan con `VITE_`, y se **hornean en el
 > build**. Por eso el front se despliega **después** de tener la URL del backend.
 
 ---
@@ -615,15 +678,15 @@ en dos servicios separados (porque son dos runtimes distintos). **El orden
 importa: primero el backend, después el frontend**, porque el front necesita la
 URL del back para compilar.
 
-> **Antes de empezar:** necesitás cuenta en [render.com](https://render.com)
+> **Antes de empezar:** necesitas cuenta en [render.com](https://render.com)
 > (gratis, se crea con GitHub). Render ve tus repos, incluidos los privados de
 > `yusgreen` si estás logueado con esa cuenta.
 
 ### 14.1 Desplegar el BACKEND (Web Service)
 
 1. En el dashboard de Render: **New → Web Service**.
-2. Conectá el repo `yusgreen/nova-salud` (rama `main`).
-3. Configurá:
+2. Conecta el repo `yusgreen/nova-salud` (rama `main`).
+3. Configura:
 
    | Campo | Valor |
    | --- | --- |
@@ -633,7 +696,7 @@ URL del back para compilar.
    | **Environment** | Node |
    | **Instance Type** | Free |
 
-4. En **Environment Variables**, agregá:
+4. En **Environment Variables**, agrega:
 
    | Key | Value |
    | --- | --- |
@@ -648,19 +711,19 @@ URL del back para compilar.
    > `development` se instalan todas y el arranque es determinístico. (Esto ya nos
    > mordió; ver §15.)
 
-5. **Create Web Service**. Esperá a que diga **Live**. Copiá la URL, se ve así:
+5. **Create Web Service**. Espera a que diga **Live**. Copia la URL, se ve así:
    `https://nova-salud-XXXX.onrender.com`.
-6. **Verificá** abriendo en el navegador:
+6. **Verifica** abriendo en el navegador:
    - `https://nova-salud-XXXX.onrender.com/` → `{"ok":true,"service":"nova-salud-api"}`
    - `https://nova-salud-XXXX.onrender.com/products` → los 5 productos del seed.
 
-   Si `/products` devuelve `[]`, el seed no corrió (revisá los logs). Si da error,
-   mirá **Logs** del servicio (§15).
+   Si `/products` devuelve `[]`, el seed no corrió (revisa los logs). Si da error,
+   mira **Logs** del servicio (§15).
 
 ### 14.2 Desplegar el FRONTEND (Static Site)
 
-1. **New → Static Site**. Conectá el mismo repo, rama `main`.
-2. Configurá:
+1. **New → Static Site**. Conecta el mismo repo, rama `main`.
+2. Configura:
 
    | Campo | Valor |
    | --- | --- |
@@ -668,7 +731,7 @@ URL del back para compilar.
    | **Build Command** | `npm install && npm run build` |
    | **Publish Directory** | `dist` |
 
-3. En **Environment Variables**, agregá las **dos** apuntando a la URL del backend
+3. En **Environment Variables**, agrega las **dos** apuntando a la URL del backend
    del paso 14.1 (sin `/products` ni nada al final, solo la raíz):
 
    | Key | Value |
@@ -676,23 +739,24 @@ URL del back para compilar.
    | `VITE_API_URL` | `https://nova-salud-XXXX.onrender.com` |
    | `VITE_SOCKET_URL` | `https://nova-salud-XXXX.onrender.com` |
 
-4. **Create Static Site**. Esperá **Live**. Copiá su URL (ej.
+4. **Create Static Site**. Espera **Live**. Copia su URL (ej.
    `https://nova-salud-1.onrender.com`).
-5. **Verificá** abriendo la URL del front: debería mostrar el Login. Logueate con
-   `admin@novasalud.pe` / `admin123` y confirmá que ves los 5 productos.
+5. **Verifica** abriendo la URL del front: debería mostrar el Login. Inicia sesión con
+   `admin@novasalud.pe` / `admin123` y confirma que entras al **Inventario** con los
+   5 productos (vista inicial tras el login).
 
 ### 14.3 Cómo se actualiza el deploy después
 
 Cada `git push` a `main` **redeploya los dos servicios solos** (Render hace
-auto-deploy con cada push). No necesitás tocar el dashboard. Solo usá
-**Manual Deploy → Clear build cache & deploy** si sospechás que el build reusó
+auto-deploy con cada push). No necesitas tocar el dashboard. Solo usa
+**Manual Deploy → Clear build cache & deploy** si sospechas que el build reusó
 algo viejo y no reflejó tu cambio (por ejemplo, cuando un commit no llegó al repo).
 
-### 14.4 Limitaciones del plan gratis (leelas, no son bugs)
+### 14.4 Limitaciones del plan gratis (léelas, no son bugs)
 
 - **Cold start:** el backend se duerme tras ~15 min sin tráfico. Al abrir el link
   de nuevo, tarda **30–60 s** en despertar (Render muestra una pantalla de carga).
-  *Truco de demo:* 30 s antes de presentar, abrí vos la URL del backend para
+  *Truco de demo:* 30 s antes de presentar, abre tú la URL del backend para
   calentarlo.
 - **Filesystem efímero:** el `dev.db` se pierde cuando el servicio se reinicia o
   redeploya. Por eso el *start command* corre `db push && db seed` en cada
@@ -706,34 +770,34 @@ algo viejo y no reflejó tu cambio (por ejemplo, cuando un commit no llegó al r
 ## 15. Solución de problemas comunes
 
 Estos son los errores **reales** que ya enfrentó el equipo y cómo se resolvieron.
-Si te topás con uno, ya tiene respuesta.
+Si te topas con uno, ya tiene respuesta.
 
 | Síntoma | Causa | Solución |
 | --- | --- | --- |
-| `git clone` dice `Repository not found` o pide login y falla | No te invitaron al repo privado, o estás logueado en Git con otra cuenta. | Pedí a Ángel que te invite (Paso 0) y **aceptá** la invitación. Verificá con qué cuenta estás: `gh auth status`. |
-| `npm run dev` del backend: `Cannot find module 'socket.io'` (o cualquier módulo) | Esa dependencia no está en `package.json` (se instaló en otra carpeta o no se commiteó). Render clona el manifiesto, no tu disco. | `cd back && npm install socket.io` (o la que falte), confirmá que aparece en `dependencies` del `package.json`, commit + push. |
-| Deploy de Render falla en el *start* con `prisma: command not found` | `NODE_ENV=production` (default de Render) omitió las devDeps, y la CLI de Prisma es devDep. | Poné `NODE_ENV=development` en las env vars del servicio y redeployá con *Clear build cache*. |
-| `npx prisma db push` da `P1012` o error de `datasource.url` | Estás usando Prisma 7, que mueve la config a `prisma.config.ts` y exige ESM. | Este proyecto usa **Prisma 6.19.3** a propósito. No subas a 7 (ver §16). Si tu `package.json` dice `prisma@^7`, volvé a `^6.19.3` y `npm install`. |
-| Warning `package.json#prisma is deprecated` en los logs | Prisma 6 avisa que en v7 eso se muda. | **Ruido benigno.** Ignoralo. No rompe nada en v6. |
-| El front muestra "Cargando inventario…" para siempre o error de red | El backend no está corriendo, o `VITE_API_URL` apunta a un lugar equivocado. | Levantá el backend (Paso 2). En local debe ser `http://localhost:4000`. Si cambiaste el `.env` del front, reiniciá `npm run dev` (las `VITE_*` se hornean al arrancar). |
+| `git clone` dice `Repository not found` o pide login y falla | No te invitaron al repo privado, o estás logueado en Git con otra cuenta. | Pide a Ángel que te invite (Paso 0) y **acepta** la invitación. Verifica con qué cuenta estás: `gh auth status`. |
+| `npm run dev` del backend: `Cannot find module 'socket.io'` (o cualquier módulo) | Esa dependencia no está en `package.json` (se instaló en otra carpeta o no se commiteó). Render clona el manifiesto, no tu disco. | `cd back && npm install socket.io` (o la que falte), confirma que aparece en `dependencies` del `package.json`, commit + push. |
+| Deploy de Render falla en el *start* con `prisma: command not found` | `NODE_ENV=production` (default de Render) omitió las devDeps, y la CLI de Prisma es devDep. | Pon `NODE_ENV=development` en las env vars del servicio y vuelve a desplegar con *Clear build cache*. |
+| `npx prisma db push` da `P1012` o error de `datasource.url` | Estás usando Prisma 7, que mueve la config a `prisma.config.ts` y exige ESM. | Este proyecto usa **Prisma 6.19.3** a propósito. No subas a 7 (ver §16). Si tu `package.json` dice `prisma@^7`, vuelve a `^6.19.3` y `npm install`. |
+| Warning `package.json#prisma is deprecated` en los logs | Prisma 6 avisa que en v7 eso se muda. | **Ruido benigno.** Ignóralo. No rompe nada en v6. |
+| El front muestra "Cargando inventario…" para siempre o error de red | El backend no está corriendo, o `VITE_API_URL` apunta a un lugar equivocado. | Levanta el backend (Paso 2). En local debe ser `http://localhost:4000`. Si cambiaste el `.env` del front, reinicia `npm run dev` (las `VITE_*` se hornean al arrancar). |
 | Login da `Credenciales inválidas` con `admin@novasalud.pe`/`admin123` | No corriste el seed, o la BD se reseteó. | `cd back && npx prisma db seed`. En Render, el seed corre solo al arrancar (start command). |
-| `curl.exe -d '{...}'` en PowerShell da 400 `SyntaxError: Expected property name` | PowerShell manglea las comillas del JSON al pasarlas a `curl.exe`. | Usá `Invoke-RestMethod` (ve el ejemplo en §10) o agregá `-Compress` al `ConvertTo-Json`. |
-| Un `const` dentro del JSX da `ts(1382) Unexpected token` | En JSX, entre tags solo van elementos, texto o expresiones `{}`; una sentencia `const` suelta no es válida ahí. | Mové el `const` arriba del `return`, al bloque de JS del `.map()`. |
+| `curl.exe -d '{...}'` en PowerShell da 400 `SyntaxError: Expected property name` | PowerShell deforma las comillas del JSON al pasarlas a `curl.exe`. | Usa `Invoke-RestMethod` (ve el ejemplo en §10) o agrega `-Compress` al `ConvertTo-Json`. |
+| Un `const` dentro del JSX da `ts(1382) Unexpected token` | En JSX, entre tags solo van elementos, texto o expresiones `{}`; una sentencia `const` suelta no es válida ahí. | Mueve el `const` arriba del `return`, al bloque de JS del `.map()`. |
 | El deploy de Render "no refleja mi cambio" | El commit no llegó al repo, o el build reusó caché vieja. | `git log --oneline` para confirmar que tu commit está; `git push`; y si persiste, *Manual Deploy → Clear build cache & deploy*. |
-| El backend de Render tarda 30–60 s en responder la primera vez | Cold start del plan gratis. | Normal. Calentá el servicio abriendo `/` 30 s antes de presentar. |
-| `ssh -T git@github.com` da `Bad configuration option: \357\273\277host` | Tu `~/.ssh/config` se guardó con BOM (UTF-8 con BOM de PowerShell 5). | Reescribí el config **sin BOM** (en VS Code: *Save with Encoding → UTF-8*, no "UTF-8 with BOM"). |
+| El backend de Render tarda 30–60 s en responder la primera vez | Cold start del plan gratis. | Normal. Calienta el servicio abriendo `/` 30 s antes de presentar. |
+| `ssh -T git@github.com` da `Bad configuration option: \357\273\277host` | Tu `~/.ssh/config` se guardó con BOM (UTF-8 con BOM de PowerShell 5). | Reescribe el config **sin BOM** (en VS Code: *Save with Encoding → UTF-8*, no "UTF-8 with BOM"). |
 
-> **Regla de oro para diagnosticar:** leé el error completo, separá la señal (la
+> **Regla de oro para diagnosticar:** lee el error completo, separa la señal (la
 > línea que dice `Error:` o `Cannot find`) del ruido (warnings, `npm warn`,
-> `deprecated`). La mayoría de los "errores" de arriba son ruido que un descuidado
-> confunde con la causa. Empezá siempre por los **logs** del servicio en Render.
+> `deprecated`). La mayoría de los "errores" de arriba son ruido que se suele
+> confundir con la causa. Empieza siempre por los **logs** del servicio en Render.
 
 ---
 
 <a name="16-arquitectura"></a>
 ## 16. Decisiones de arquitectura (para la defensa)
 
-Estas son las elecciones no obvias y **por qué** se tomaron. Serven para responder
+Estas son las elecciones no obvias y **por qué** se tomaron. Sirven para responder
 "¿y por qué así?" el 7 de noviembre.
 
 - **Prisma 6.19.3 y no v7.** La guía oficial de upgrade a v7
@@ -747,7 +811,8 @@ Estas son las elecciones no obvias y **por qué** se tomaron. Serven para respon
   `package.json#prisma` a `migrations.seed`; y se requieren *driver adapters*.
   Quedarse en v6 mantiene el patrón clásico compatible con CommonJS. La migración
   a v7 queda como mejora futura (§17).
-- **SQLite + seed al arrancar (no Postgres).** Para una demo académica en plan
+- **SQLite + seed al arrancar (no Postgres).** Producción (Render) usa SQLite
+  (archivo `dev.db`), no PostgreSQL. Para una demo académica en plan
   gratis, SQLite (un archivo) es suficiente y no requiere servicio de BD
   administrado. El filesystem de Render es efímero, así que el *start command*
   re-siembra en cada arranque. Postgres persistente (con `migrate deploy` en vez
@@ -784,9 +849,22 @@ Estas son las elecciones no obvias y **por qué** se tomaron. Serven para respon
   producto con ventas rompería el historial (FK). El backend cuenta
   `DetalleVenta` antes de borrar y responde 409 con mensaje humano. Preserva
   trazabilidad sin tocar el schema.
-- **Sin React Router (por ahora).** La alternancia de vistas (Login/Inventario/
-  Caja/Ventas) se hace con estado, no con rutas. Reduce superficie de error para
-  un equipo pequeño; migrar a Router es mejora futura (§17).
+- **Sin React Router (por ahora).** La alternancia de vistas (Login / Dashboard /
+  Inventario / Caja / Ventas / Auditoría / Configuración) se hace con estado, no
+  con rutas. Reduce superficie de error para un equipo pequeño; migrar a Router es
+  mejora futura (§17).
+- **Auditoría con diff.** `PRODUCT_UPDATE` guarda en `detalle.cambios` el valor
+  anterior y nuevo de cada campo modificado; `CONFIG_UPDATE` audita los cambios de
+  configuración. Permite trazabilidad completa sin tablas extra.
+- **Trazabilidad de stock.** Cada cambio de inventario genera un `MovimientoStock`
+  (INICIAL, AJUSTE, VENTA) con stock anterior/nuevo y usuario, consultable por
+  admin/farmacéutico.
+- **Sistema de temas.** La preferencia (claro/oscuro/sistema) se persiste en
+  `localStorage` y se aplica como `data-theme` en `<html>` con script inline
+  anti-parpadeo; "sistema" sigue `prefers-color-scheme`.
+- **Configuración: BD vs localStorage.** Los ajustes globales (nombre, lema, moneda,
+  umbral, ayuda demo) viven en BD y solo el admin los edita; las preferencias
+  personales (tema, compacto, fuente, formato, filas) viven en `localStorage`.
 
 ---
 
@@ -795,29 +873,14 @@ Estas son las elecciones no obvias y **por qué** se tomaron. Serven para respon
 
 El alcance se cerró para cumplir el enunciado sin inflar. Estas ideas quedaron
 fuera **a decisión**, no por olvido. Si el grupo quiere extender después de la
-entrega, van por acá:
-
-- **Postgres gestionado** en vez de SQLite efímero, para que las ventas de la demo
-  persistan (requiere cambiar `provider` en el schema y usar `migrate deploy`).
-- **Migrar a Prisma 7** siguiendo la guía oficial (ESM, `prisma.config.ts`, driver
-  adapters, seed en `migrations.seed`).
-- **React Router** para rutas reales (`/inventario`, `/caja`, `/ventas/:id`) en vez
-  de estado.
-- **Filtros y reportes** del historial: por rango de fechas, productos más
-  vendidos (agrupar `DetalleVenta` por `productoId`), exportar CSV, paginación.
-- **Dashboard de métricas** (ventas del día, stock crítico, rotación).
-- **CORS restringido** al origin del front cuando haya dominio propio (hoy es
-  `origin: "*"` por simplicidad en el plan gratis).
+entrega, van por aquí:
+- **Postgres gestionado** en vez de SQLite efemero, para que las ventas de la demo persistan (requiere cambiar `provider` en el schema y usar `migrate deploy`).
+- **Migrar a Prisma 7** siguiendo la guia oficial (ESM, `prisma.config.ts`, driver adapters, seed en `migrations.seed`).
+- **React Router** para rutas reales (`/inventario`, `/caja`, `/ventas/:id`) en vez de estado.
+- **CORS restringido** al origin del front cuando haya dominio propio (hoy es `origin: "*"` por simplicidad en el plan gratis).
 - **Rooms de Socket.io por rol** para alertas privadas en vez de broadcast global.
 - **Render de pago** para eliminar cold start y sleep.
-- **Imágenes reales** de productos (hoy el front muestra la inicial como
-  placeholder; el campo `imagen` ya existe en el modelo para cuando haya assets).
-- **Toggle manual de tema** claro/oscuro (hoy es automático por
-  `prefers-color-scheme`).
-
----
-
-<a name="18-checklist"></a>
+- **Imagenes reales** de productos (hoy el front muestra la inicial como placeholder; el campo `imagen` ya existe en el modelo para cuando haya assets).
 ## 18. Checklist de entrega (7 de noviembre)
 
 - [ ] Repo `yusgreen/nova-salud` con todo el código commiteado y pusheado.
@@ -829,6 +892,8 @@ entrega, van por acá:
 - [ ] Prueba de roles: cajero sin botones de edición ni pestaña Ventas (y 403 por
       API si intenta).
 - [ ] Prueba de venta atómica: stock insuficiente → 400 y el stock **no** cambia.
+- [ ] Pruebas: `cd back && npm test` (53 pruebas) pasando.
+- [ ] Tema claro/oscuro: verificar en Configuración (Claro / Oscuro / Sistema).
 - [ ] Documentación: propuesta de las 5 preguntas guía + 4 diagramas (casos de uso,
       arquitectura, flujo de venta, ER) + plantilla completa.
 - [ ] Video demo (si el curso lo pide).
@@ -842,6 +907,6 @@ Trabajo académico del curso de Full Stack Developer. Autor: **Ángel** (cuenta
 GitHub `yusgreen`). Stack: Node.js · Express 5 · Prisma 6 · SQLite · JWT ·
 bcryptjs · Socket.io · React 18 · Vite 5 · Render.
 
-> ¿Dudas? Revisá primero §15 (Solución de problemas). Si no está ahí, preguntá en
+> ¿Dudas? Revisa primero §15 (Solución de problemas). Si no está ahí, pregunta en
 > el grupo con el **error completo** (no "no funciona", sino el mensaje literal de
 > la terminal o los logs de Render). Así se resuelve en minutos, no en horas.

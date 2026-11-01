@@ -11,6 +11,8 @@ router.post("/", requireAuth, ctrl.createSale);
 // Mismo recurso /sales, dos middlewares distintos segun la operacion.
 // El front oculta el tab, pero el back es el arbitro (403 si el cajero insiste por API).
 router.get("/mi-turno", requireAuth, ctrl.getMyTurn);   // requireAuth, SIN requireRole: todo rol autenticado ve solo lo suyo
+router.get("/cierre", requireAuth, ctrl.getCierreCaja);
 router.get("/", requireAuth, requireRole("admin", "farmaceutico"), ctrl.getSales);
 router.get("/export", requireAuth, requireRole("admin", "farmaceutico"), ctrl.exportSalesExcel);
+router.post("/:id/anular", requireAuth, requireRole("admin", "farmaceutico"), ctrl.anularSale);
 module.exports = router;

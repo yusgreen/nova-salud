@@ -29,6 +29,18 @@ export function IconCaja({ className, ...p }) {
   );
 }
 
+export function IconCierreCaja({ className, ...p }) {
+  return (
+    <svg className={className} {...base} {...p}>
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <line x1="8" y1="7" x2="16" y2="7" />
+      <line x1="8" y1="11" x2="10" y2="11" />
+      <line x1="13" y1="11" x2="16" y2="11" />
+      <line x1="8" y1="15" x2="10" y2="15" />
+      <line x1="13" y1="15" x2="16" y2="15" />
+    </svg>
+  );
+}
 export function IconVentas({ className, ...p }) {
   return (
     <svg className={className} {...base} {...p}>
@@ -72,6 +84,26 @@ export function IconConfiguracion({ className, ...p }) {
     <svg className={className} {...base} {...p}>
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.64 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3a2 2 0 1 1 4 0v.09A1.7 1.7 0 0 0 15.5 4.64a1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v.09a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51.51z" />
+    </svg>
+  );
+}
+
+export function IconUsuarios({ className, ...p }) {
+  return (
+    <svg className={className} {...base} {...p}>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <path d="M16 5a3 3 0 0 1 0 6" />
+      <path d="M18.5 14.5c2.1.7 3.5 2.7 3.5 5.5" />
+    </svg>
+  );
+}
+
+export function IconTema({ className, ...p }) {
+  return (
+    <svg className={className} {...base} {...p}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
     </svg>
   );
 }

@@ -7,6 +7,8 @@ import { useConfig } from "../context/ConfigContext";
 import { formatearMoneda } from "../services/format";
 import { SkeletonStack } from "./Skeleton";
 import { IconCaja, IconPlus, IconSearch, IconTrash } from "./Icons";
+import Modal from "./Modal";
+import Comprobante from "./Comprobante";
 
 function iniciales(nombre = "") {
   return nombre
@@ -23,6 +25,7 @@ export default function Caja() {
   const { usuario } = useAuth();
   const { config } = useConfig();
   const { productos, loading, error } = useProducts(); // <- lista desde el contexto, no fetch local
+  const productosActivos = useMemo(() => productos.filter((p) => p.activo !== false), [productos]);
 
   const [busqueda, setBusqueda] = useState("");
   const [msgExito, setMsgExito] = useState("");
@@ -30,16 +33,28 @@ export default function Caja() {
   const [busy, setBusy] = useState(false);
 
   const [nota, setNota] = useState("");
+  const [metodoPago, setMetodoPago] = useState("EFECTIVO");
+  const [montoRecibido, setMontoRecibido] = useState("");
+  const [comprobante, setComprobante] = useState(null);
+
+  const vuelto =
+    metodoPago === "EFECTIVO" && montoRecibido !== ""
+      ? Number(montoRecibido) - total
+      : null;
+  const montoInsuficiente =
+    metodoPago === "EFECTIVO" &&
+    montoRecibido !== "" &&
+    Number(montoRecibido) < total;
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    if (!q) return productos;
-    return productos.filter((p) =>
+    if (!q) return productosActivos;
+    return productosActivos.filter((p) =>
       [p.nombre, p.descripcion, p.codigo, p.codigoBarras, p.categoria]
         .filter(Boolean)
         .some((valor) => String(valor).toLowerCase().includes(q))
     );
-  }, [productos, busqueda]);
+  }, [productosActivos, busqueda]);
 
   async function registrarVenta() {
   if (lineas.length === 0) return;
@@ -47,12 +62,23 @@ export default function Caja() {
   try {
     // El front manda solo QUE y CUANTO. Ni precio ni total: eso los decide el back (C1-2).
     const detalles = lineas.map((l) => ({ productoId: l.productoId, cantidad: l.cantidad }));
-    const data = await api.post("/sales", { detalles, nota: nota.trim() || undefined });
+    const payload = {
+      detalles,
+      nota: nota.trim() || undefined,
+      metodoPago,
+    };
+    if (metodoPago === "EFECTIVO" && montoRecibido !== "") {
+      payload.montoRecibido = Number(montoRecibido);
+    }
+    const data = await api.post("/sales", payload);
     // Pinto el total REAL de la respuesta. El stock de la lista bajara SOLO via socket,
     // sin refetch manual: eso demuestra el tiempo real de F3.
-    setMsgExito(`Venta registrada. Total ${formatearMoneda(data.venta.total, config.moneda)} · Atendió: ${usuario?.nombre}`);
+    setMsgExito(`Venta registrada. Total ${formatearMoneda(data.venta.total, config.moneda)} — Atendió: ${usuario?.nombre}`);
+    setComprobante(data.venta);
     limpiar();
-    setNota("");   // limpia la nota para el siguiente ticket (limpiar() solo toca el SaleContext)
+    setNota("");
+    setMetodoPago("EFECTIVO");
+    setMontoRecibido("");   // limpia la nota para el siguiente ticket (limpiar() solo toca el SaleContext)
   } catch (e) {
     // 400 de stock insuficiente (o 401 si expiro el token): muestro el mensaje del back
     // y NO limpio el ticket, para que el cajero ajuste la cantidad.
@@ -62,11 +88,11 @@ export default function Caja() {
   }
 }
 
-  const disponibles = productos.filter((p) => p.stock > 0).length;
-  const stockBajo = productos.filter(
+  const disponibles = productosActivos.filter((p) => p.stock > 0).length;
+  const stockBajo = productosActivos.filter(
     (p) => p.stock > 0 && p.stock <= (p.stockMinimo ?? 0)
   ).length;
-  const agotados = productos.filter((p) => p.stock <= 0).length;
+  const agotados = productosActivos.filter((p) => p.stock <= 0).length;
 
   return (
     <div className="caja-page">
@@ -269,10 +295,52 @@ export default function Caja() {
             />
           </label>
 
+          <div className="caja-pago">
+            <label>
+              Método de pago
+              <select
+                value={metodoPago}
+                onChange={(e) => setMetodoPago(e.target.value)}
+                disabled={busy}
+              >
+                <option value="EFECTIVO">Efectivo</option>
+                <option value="TARJETA">Tarjeta</option>
+                <option value="YAPE_PLIN">Yape/Plin</option>
+              </select>
+            </label>
+
+            {metodoPago === "EFECTIVO" && (
+              <div className="caja-pago-row">
+                <label>
+                  Recibido
+                  <input
+                    type="number"
+                    min={total}
+                    step="0.01"
+                    value={montoRecibido}
+                    onChange={(e) => setMontoRecibido(e.target.value)}
+                    placeholder={formatearMoneda(total, config.moneda)}
+                    disabled={busy}
+                  />
+                </label>
+                <div className={`vuelto ${montoInsuficiente ? "insuficiente" : ""}`}>
+                  <span>Vuelto</span>
+                  <strong>
+                    {montoInsuficiente
+                      ? "Monto insuficiente"
+                      : vuelto === null
+                        ? "—"
+                        : formatearMoneda(vuelto, config.moneda)}
+                  </strong>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             className="btn-primary btn-block"
             onClick={registrarVenta}
-            disabled={busy || lineas.length === 0}
+            disabled={busy || lineas.length === 0 || montoInsuficiente}
           >
             {busy ? "Registrando…" : `Cobrar ${formatearMoneda(total, config.moneda)}`}
           </button>
@@ -283,6 +351,12 @@ export default function Caja() {
           )}
         </aside>
       </div>
+
+      {comprobante && (
+        <Modal titulo="Comprobante de venta" onClose={() => setComprobante(null)}>
+          <Comprobante venta={comprobante} onClose={() => setComprobante(null)} />
+        </Modal>
+      )}
     </div>
   );
 }

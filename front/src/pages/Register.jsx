@@ -26,16 +26,16 @@ export default function Register({ onSwitch }) {
     <AuthLayout>
       <form className="auth-card" onSubmit={onSubmit}>
         <div className="auth-form-head">
-          <h1 className="auth-title">Creá tu cuenta</h1>
+          <h1 className="auth-title">Crea tu cuenta</h1>
           <p className="muted">Un acceso simple para empezar a vender</p>
         </div>
         {error && <p className="status error">{error}</p>}
         <label>Nombre<input value={nombre} onChange={(e)=>setNombre(e.target.value)} required /></label>
-        <label>Email<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" required /></label>
-        <label>Contraseña (min 6)<input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" minLength={6} required /></label>
+        <label>Email<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" placeholder="tu@correo.com" required /></label>
+        <label>Contraseña (min 6)<input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="Tu contraseña" minLength={6} required /></label>
         <button className="btn-primary" disabled={busy}>{busy ? "Creando..." : "Registrarme"}</button>
         <p className="muted small">
-          ¿Ya tenés cuenta? <button type="button" className="link" onClick={onSwitch}>Ingresá</button>
+          ¿Ya tienes cuenta? <button type="button" className="link" onClick={onSwitch}>Ingresa</button>
         </p>
       </form>
     </AuthLayout>

@@ -84,8 +84,12 @@ exports.login = async (req, res) => {
       where: { email: emailNorm },
     });
 
-    const credentialsValidas =
-      usuario && (await bcrypt.compare(password, usuario.passwordHash));
+    // Comparo siempre el hash (también para inactivos) para no filtrar por
+    // tiempo si el email existe. Un inactivo falla con el mismo mensaje.
+    const passwordValida = usuario
+      ? await bcrypt.compare(password, usuario.passwordHash)
+      : false;
+    const credentialsValidas = Boolean(usuario?.activo && passwordValida);
 
     // Solo se audita el fallo cuando el login realmente falla.
     // Mensaje único para no revelar si el email existe o no.
@@ -141,11 +145,110 @@ exports.me = async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    
-
     return res.json({ user: usuarioSeguro(usuario) });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: "Error al obtener usuario" });
+  }
+};
+
+exports.updateMe = async (req, res) => {
+  try {
+    const nombre = String(req.body?.nombre || "").trim();
+
+    if (!nombre) {
+      return res.status(400).json({ error: "El nombre es obligatorio" });
+    }
+
+    const actual = await prisma.usuario.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!actual) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    // Si no hay cambios reales, evito una escritura y una auditoría vacía.
+    if (actual.nombre === nombre) {
+      return res.json({ user: usuarioSeguro(actual) });
+    }
+
+    const usuario = await prisma.usuario.update({
+      where: { id: actual.id },
+      data: { nombre },
+    });
+
+    await auditar({
+      req,
+      userId: usuario.id,
+      accion: "PROFILE_UPDATE",
+      entidad: "Usuario",
+      entidadId: usuario.id,
+      detalle: {
+        cambios: {
+          nombre: { antes: actual.nombre, despues: usuario.nombre },
+        },
+      },
+    });
+
+    return res.json({ user: usuarioSeguro(usuario) });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error al actualizar el perfil" });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const passwordActual = String(req.body?.passwordActual || "");
+    const passwordNueva = String(req.body?.passwordNueva || "");
+
+    if (!passwordActual || !passwordNueva) {
+      return res.status(400).json({
+        error: "La contraseña actual y la nueva son obligatorias",
+      });
+    }
+
+    if (passwordNueva.length < 6) {
+      return res.status(400).json({
+        error: "La nueva contraseña debe tener al menos 6 caracteres",
+      });
+    }
+
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: req.user.id },
+    });
+
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    const actualValida = await bcrypt.compare(passwordActual, usuario.passwordHash);
+
+    if (!actualValida) {
+      return res.status(400).json({ error: "La contraseña actual es incorrecta" });
+    }
+
+    const passwordHash = await bcrypt.hash(passwordNueva, 10);
+
+    await prisma.usuario.update({
+      where: { id: usuario.id },
+      data: { passwordHash },
+    });
+
+    // Nunca guardo contraseñas ni hashes en la auditoría.
+    await auditar({
+      req,
+      userId: usuario.id,
+      accion: "PASSWORD_CHANGE",
+      entidad: "Usuario",
+      entidadId: usuario.id,
+      detalle: { email: usuario.email },
+    });
+
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Error al cambiar la contraseña" });
   }
 };

@@ -32,6 +32,7 @@ app.use(attachIo);
 
 // 5) Recien aca las rutas (leen req.io gracias al paso 4).
 app.use("/auth", authRoutes);
+app.use("/users", require("./routes/users"));
 app.use("/products", productRoutes);
 app.use("/sales", salesRoutes);
 app.use("/audit", require("./routes/audit"));

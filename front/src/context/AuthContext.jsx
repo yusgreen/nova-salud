@@ -29,18 +29,27 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-  function onStorage(e) {
-    if (e.key !== TOKEN_KEY) return;        // solo nos interesa nuestra clave
-    const nuevo = getToken();               // lee el valor YA actualizado por A
-    if (!nuevo) { setUsuario(null); return; }   // logout en otra pestana
-    // cambio de usuario en otra pestana: revalidamos para espejar la sesion real
-    api.get("/auth/me")
-      .then((d) => setUsuario(d.user))
-      .catch(() => setUsuario(null));       // token nuevo invalido o expirado
-  }
-  window.addEventListener("storage", onStorage);
-  return () => window.removeEventListener("storage", onStorage);
-}, []);
+    function onStorage(e) {
+      if (e.key !== TOKEN_KEY) return;        // solo nos interesa nuestra clave
+      const nuevo = getToken();               // lee el valor YA actualizado por A
+      if (!nuevo) { setUsuario(null); return; }   // logout en otra pestana
+      // cambio de usuario en otra pestana: revalidamos para espejar la sesion real
+      api.get("/auth/me")
+        .then((d) => setUsuario(d.user))
+        .catch(() => setUsuario(null));       // token nuevo invalido o expirado
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  // api.js emite este evento cuando cualquier petición autenticada devuelve 401.
+  useEffect(() => {
+    function onSesionExpirada() {
+      setUsuario(null);
+    }
+    window.addEventListener("nova:session-expired", onSesionExpirada);
+    return () => window.removeEventListener("nova:session-expired", onSesionExpirada);
+  }, []);
 
   async function login(email, password) {
     const data = await api.post("/auth/login", { email, password });
@@ -59,6 +68,16 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
+  async function actualizarPerfil(nombre) {
+    const data = await api.put("/auth/me", { nombre });
+    setUsuario(data.user);
+    return data.user;
+  }
+
+  async function cambiarPassword(passwordActual, passwordNueva) {
+    return api.put("/auth/password", { passwordActual, passwordNueva });
+  }
+
   function logout() {
     clearToken();
     setUsuario(null);
@@ -70,6 +89,8 @@ export function AuthProvider({ children }) {
     loading,
     login,
     register,
+    actualizarPerfil,
+    cambiarPassword,
     logout,
     isAuthenticated: !!usuario,
     isAdmin: usuario?.rol === "admin",

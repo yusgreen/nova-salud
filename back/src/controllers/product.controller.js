@@ -4,13 +4,13 @@ const { auditar } = require("../utils/audit");
 const CAMPOS_PRODUCTO = [
   "nombre", "descripcion", "precio", "imagen", "stock", "stockMinimo",
   "codigo", "codigoBarras", "categoria", "proveedor", "unidad",
-  "precioCompra", "fechaVencimiento",
+  "precioCompra", "fechaVencimiento", "activo",
 ];
 
 const CAMPOS_AUDITABLES = [
   "nombre", "descripcion", "precio", "imagen", "stock", "stockMinimo",
   "codigo", "codigoBarras", "categoria", "proveedor", "unidad",
-  "precioCompra", "fechaVencimiento",
+  "precioCompra", "fechaVencimiento", "activo",
 ];
 
 function filtrarCampos(body) {
@@ -98,7 +98,10 @@ function validarProducto(data, { parcial = false } = {}) {
   }
   if (data.fechaVencimiento !== undefined && data.fechaVencimiento !== null &&
       !(data.fechaVencimiento instanceof Date)) {
-    return "fechaVencimiento debe ser una fecha válida";
+    return "fechaVencimiento debe ser una fecha vǭlida";
+  }
+  if (data.activo !== undefined && typeof data.activo !== "boolean") {
+    return "activo debe ser verdadero o falso";
   }
   return null;
 }
@@ -318,5 +321,91 @@ exports.deleteProduct = async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Error al eliminar producto" });
+  }
+};
+
+// ---- POST /products/:id/entrada : recepcion de mercaderia (admin/farmaceutico) ----
+exports.receiveStock = async (req, res) => {
+  try {
+    const id = parseId(req.params.id);
+    if (id === null) return res.status(400).json({ error: "id invalido" });
+
+    const cantidad = Number(req.body?.cantidad);
+    if (!Number.isInteger(cantidad) || cantidad <= 0) {
+      return res.status(400).json({ error: "cantidad debe ser un entero mayor a 0" });
+    }
+
+    const proveedorRaw = req.body?.proveedor;
+    const proveedor = typeof proveedorRaw === "string" ? proveedorRaw.trim() || null : null;
+
+    const motivoRaw = req.body?.motivo ?? req.body?.nota;
+    const motivoBase = typeof motivoRaw === "string" ? motivoRaw.trim() : "";
+    const motivo = motivoBase || "Recepción de mercadería";
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const existe = await tx.producto.findUnique({ where: { id } });
+      if (!existe) {
+        return { status: 404, error: "Producto no encontrado" };
+      }
+
+      const stockAnterior = existe.stock;
+      const stockNuevo = stockAnterior + cantidad;
+
+      const dataProducto = { stock: stockNuevo };
+      if (proveedor) dataProducto.proveedor = proveedor;
+
+      const producto = await tx.producto.update({
+        where: { id },
+        data: dataProducto,
+      });
+
+      const motivoFinal = proveedor
+        ? `${motivo} (Proveedor: ${proveedor})`
+        : motivo;
+
+      const movimiento = await tx.movimientoStock.create({
+        data: {
+          productoId: id,
+          usuarioId: req.user.id,
+          tipo: "ENTRADA",
+          cantidad,
+          stockAnterior,
+          stockNuevo,
+          motivo: motivoFinal,
+        },
+      });
+
+      return { producto, movimiento, stockAnterior, stockNuevo };
+    });
+
+    if (resultado.error) {
+      return res.status(resultado.status).json({ error: resultado.error });
+    }
+
+    const { producto, movimiento, stockAnterior, stockNuevo } = resultado;
+
+    req.io?.emit("stock_actualizado", [
+      { id: producto.id, nombre: producto.nombre, stock: stockNuevo },
+    ]);
+
+    await auditar({
+      req,
+      userId: req.user.id,
+      accion: "STOCK_ENTRY",
+      entidad: "Producto",
+      entidadId: producto.id,
+      detalle: {
+        cantidad,
+        proveedor: proveedor || producto.proveedor,
+        motivo,
+        stockAnterior,
+        stockNuevo,
+      },
+    });
+
+    return res.status(201).json({ producto, movimiento });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Error al registrar la entrada de mercadería" });
   }
 };

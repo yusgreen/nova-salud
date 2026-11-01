@@ -28,14 +28,14 @@ export default function Login({ onSwitch }) {
       <form className="auth-card" onSubmit={onSubmit}>
         <div className="auth-form-head">
           <h1 className="auth-title">Bienvenido de nuevo</h1>
-          <p className="muted">Ingresá para gestionar el inventario</p>
+          <p className="muted">Ingresa para gestionar el inventario</p>
         </div>
         {error && <p className="status error">{error}</p>}
-        <label>Email<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" required /></label>
-        <label>Contraseña<input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" required /></label>
+        <label>Email<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" placeholder="tu@correo.com" required /></label>
+        <label>Contraseña<input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="Tu contraseña" required /></label>
         <button className="btn-primary" disabled={busy}>{busy ? "Entrando..." : "Ingresar"}</button>
         <p className="muted small">
-          ¿Sin cuenta? <button type="button" className="link" onClick={onSwitch}>Registrate</button>
+          ¿Sin cuenta? <button type="button" className="link" onClick={onSwitch}>Regístrate</button>
         </p>
         {config.mostrarAyudaDemo && (
           <p className="hint">Demo: admin@novasalud.pe / admin123</p>

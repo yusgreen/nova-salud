@@ -33,11 +33,23 @@ export function SalesProvider({ children }) {
       // filter por id evita duplicados si el GET inicial y el evento se solapan (race de mount).
       setVentas((prev) => [nueva, ...prev.filter((v) => v.id !== nueva.id)]);
     };
+    const onAnulada = (actualizada) => {
+      if (!activo) return;
+      setVentas((prev) =>
+        prev.map((v) =>
+          v.id === actualizada.id
+            ? { ...v, ...actualizada, estado: "ANULADA" }
+            : v
+        )
+      );
+    };
     socket.on("venta_registrada", onVenta);
+    socket.on("venta_anulada", onAnulada);
 
     return () => {
       activo = false;
       socket.off("venta_registrada", onVenta);   // cleanup: sin off, StrictMode duplicaria el listener
+      socket.off("venta_anulada", onAnulada);
     };
   }, [puedeGestionarInventario]);
 

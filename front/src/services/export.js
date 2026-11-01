@@ -3,9 +3,15 @@ import { getToken } from "./api";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 // Descarga el .xlsx que genera el back. No parsea JSON: pide el buffer y lo salva.
-export async function descargarVentasExcel() {
+export async function descargarVentasExcel(filtros = {}) {
+  const params = new URLSearchParams();
+  if (filtros.desde) params.set("desde", filtros.desde);
+  if (filtros.hasta) params.set("hasta", filtros.hasta);
+  if (filtros.usuarioId) params.set("usuarioId", filtros.usuarioId);
+
+  const query = params.toString();
   const tok = getToken();
-  const res = await fetch(`${API_URL}/sales/export`, {
+  const res = await fetch(`${API_URL}/sales/export${query ? `?${query}` : ""}`, {
     headers: { Authorization: `Bearer ${tok}` },
   });
   if (!res.ok) {

@@ -13,6 +13,10 @@ router.get("/:id", ctrl.getProduct);
 // Escritura protegida: solo admin o farmaceutico.
 router.post("/", requireAuth, requireRole("admin", "farmaceutico"), ctrl.createProduct);
 router.put("/:id", requireAuth, requireRole("admin", "farmaceutico"), ctrl.updateProduct);
+router.put("/:id/estado", requireAuth, requireRole("admin", "farmaceutico"), ctrl.updateProduct);
+router.post("/:id/entrada", requireAuth, requireRole("admin", "farmaceutico"), ctrl.receiveStock);
+router.post("/:id/entradas", requireAuth, requireRole("admin", "farmaceutico"), ctrl.receiveStock);
+router.post("/:id/receive", requireAuth, requireRole("admin", "farmaceutico"), ctrl.receiveStock);
 router.delete("/:id", requireAuth, requireRole("admin", "farmaceutico"), ctrl.deleteProduct);
 
 module.exports = router;

@@ -4,15 +4,183 @@
 const { auditar } = require("../utils/audit");
 const prisma = require("../prisma");
 const ExcelJS = require("exceljs");
+
+// Fechas opcionales: acepta YYYY-MM-DD (día completo) o un ISO completo.
+function parseFechaFiltro(valor, finDelDia) {
+  if (valor === undefined || valor === null || valor === "") return undefined;
+  const texto = String(valor).trim();
+  if (!texto) return undefined;
+
+  const soloFecha = /^\d{4}-\d{2}-\d{2}$/.test(texto);
+  const fecha = soloFecha
+    ? new Date(`${texto}T${finDelDia ? "23:59:59.999" : "00:00:00.000"}`)
+    : new Date(texto);
+
+  return Number.isNaN(fecha.getTime()) ? null : fecha;
+}
+
+// Filtros opcionales de GET /sales y GET /sales/export.
+function construirFiltroVentas(query = {}) {
+  const desde = parseFechaFiltro(query.desde, false);
+  const hasta = parseFechaFiltro(query.hasta, true);
+
+  if (desde === null) return { error: "El parámetro desde no es una fecha válida" };
+  if (hasta === null) return { error: "El parámetro hasta no es una fecha válida" };
+  if (desde && hasta && desde > hasta) {
+    return { error: "El rango de fechas no es válido" };
+  }
+
+  const where = {};
+  if (desde || hasta) {
+    where.fecha = {};
+    if (desde) where.fecha.gte = desde;
+    if (hasta) where.fecha.lte = hasta;
+  }
+
+  if (query.usuarioId !== undefined && query.usuarioId !== "") {
+    const id = Number(query.usuarioId);
+    if (!Number.isInteger(id) || id <= 0) {
+      return { error: "El parámetro usuarioId no es válido" };
+    }
+    where.usuarioId = id;
+  }
+
+  return { where };
+}
+
+function rangoDiaCierre(fechaStr) {
+  let texto = fechaStr;
+  if (!texto) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fin = new Date(hoy);
+    fin.setHours(23, 59, 59, 999);
+    return { fecha: hoy.toISOString().slice(0, 10), inicio: hoy, fin };
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(texto))) {
+    return null;
+  }
+
+  const inicio = new Date(`${texto}T00:00:00.000`);
+  const fin = new Date(`${texto}T23:59:59.999`);
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) return null;
+
+  return { fecha: String(texto), inicio, fin };
+}
+
+// ---- GET /sales/cierre : cierre de caja por fecha y usuario ----
+exports.getCierreCaja = async (req, res) => {
+  try {
+    const rango = rangoDiaCierre(req.query.fecha);
+    if (!rango) {
+      return res.status(400).json({ error: "La fecha no es válida" });
+    }
+
+    const esGestor = req.user.rol === "admin" || req.user.rol === "farmaceutico";
+    let usuarioId = null;
+
+    if (esGestor && req.query.usuarioId !== undefined && req.query.usuarioId !== "") {
+      const id = Number(req.query.usuarioId);
+      if (!Number.isInteger(id) || id <= 0) {
+        return res.status(400).json({ error: "El parámetro usuarioId no es válido" });
+      }
+      usuarioId = id;
+    } else if (!esGestor) {
+      usuarioId = req.user.id;
+    }
+
+    const where = {
+      fecha: { gte: rango.inicio, lte: rango.fin },
+    };
+    if (usuarioId) where.usuarioId = usuarioId;
+
+    const ventas = await prisma.venta.findMany({
+      where,
+      include: {
+        detalles: { include: { producto: true } },
+        atendidoPor: { select: { id: true, nombre: true, rol: true } },
+        anuladaPor: { select: { id: true, nombre: true, rol: true } },
+      },
+      orderBy: { fecha: "asc" },
+    });
+
+    const completadas = ventas.filter((v) => v.estado !== "ANULADA");
+    const anuladas = ventas.filter((v) => v.estado === "ANULADA");
+
+    const porMetodoMap = {};
+    completadas.forEach((v) => {
+      const metodo = v.metodoPago || "EFECTIVO";
+      if (!porMetodoMap[metodo]) {
+        porMetodoMap[metodo] = { metodo, total: 0, cantidad: 0 };
+      }
+      porMetodoMap[metodo].total += Number(v.total || 0);
+      porMetodoMap[metodo].cantidad += 1;
+    });
+
+    const porMetodo = Object.values(porMetodoMap).map((item) => ({
+      ...item,
+      total: Math.round(item.total * 100) / 100,
+    }));
+
+    const totalGeneral = completadas.reduce(
+      (suma, v) => suma + Number(v.total || 0),
+      0
+    );
+    const efectivoEsperado = completadas
+      .filter((v) => (v.metodoPago || "EFECTIVO") === "EFECTIVO")
+      .reduce((suma, v) => {
+        if (v.montoRecibido != null) {
+          return suma + (Number(v.montoRecibido) - Number(v.vuelto || 0));
+        }
+        return suma + Number(v.total || 0);
+      }, 0);
+
+    let usuario = null;
+    if (usuarioId) {
+      usuario = await prisma.usuario.findUnique({
+        where: { id: usuarioId },
+        select: { id: true, nombre: true, rol: true },
+      });
+    }
+
+    return res.json({
+      fecha: rango.fecha,
+      usuario,
+      resumen: {
+        cantidadVentas: completadas.length,
+        totalGeneral: Math.round(totalGeneral * 100) / 100,
+        porMetodo,
+        efectivoEsperado: Math.round(efectivoEsperado * 100) / 100,
+        anuladas: {
+          cantidad: anuladas.length,
+          total: Math.round(
+            anuladas.reduce((suma, v) => suma + Number(v.total || 0), 0) * 100
+          ) / 100,
+        },
+      },
+      ventas,
+    });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Error al generar el cierre de caja" });
+  }
+};
+
 // ---- GET /sales : historial de ventas (con lineas y quien atendio) ----
 exports.getSales = async (req, res) => {
   try {
+    const filtro = construirFiltroVentas(req.query);
+    if (filtro.error) return res.status(400).json({ error: filtro.error });
+
     const ventas = await prisma.venta.findMany({
+      where: filtro.where,
       include: {
         // Traigo el producto de cada linea para que el front muestre nombre/imagen.
         detalles: { include: { producto: true } },
         // Select explicito: NUNCA traigo passwordHash de quien atendio (seguridad).
         atendidoPor: { select: { id: true, nombre: true, rol: true } },
+        anuladaPor: { select: { id: true, nombre: true, rol: true } },
       },
       orderBy: { fecha: "desc" },
     });
@@ -61,6 +229,25 @@ exports.createSale = async (req, res) => {
     }, {})
   );
 
+  const METODOS_PAGO = ["EFECTIVO", "TARJETA", "YAPE_PLIN"];
+  const metodoPago = String(req.body?.metodoPago || "EFECTIVO").trim().toUpperCase();
+  if (!METODOS_PAGO.includes(metodoPago)) {
+    return res.status(400).json({ error: "metodoPago no es válido" });
+  }
+
+  let montoRecibido = undefined;
+  if (
+    req.body?.montoRecibido !== undefined &&
+    req.body?.montoRecibido !== null &&
+    req.body?.montoRecibido !== ""
+  ) {
+    const monto = Number(req.body.montoRecibido);
+    if (!Number.isFinite(monto) || monto < 0) {
+      return res.status(400).json({ error: "montoRecibido no es válido" });
+    }
+    montoRecibido = monto;
+  }
+
   // El usuario que atiende sale del TOKEN, no del body (blindaje 2).
   const usuarioId = req.user.id;
 
@@ -74,6 +261,9 @@ exports.createSale = async (req, res) => {
       for (const l of agrupadas) {
         const p = await tx.producto.findUnique({ where: { id: l.productoId } });
         if (!p) throw new Error(`NEGOCIO:Producto ${l.productoId} no existe`);
+        if (p.activo === false) {
+          throw new Error(`NEGOCIO:El producto "${p.nombre}" está inactivo y no se puede vender`);
+        }
         if (p.stock < l.cantidad) {
           throw new Error(
             `NEGOCIO:Stock insuficiente para "${p.nombre}" (hay ${p.stock}, piden ${l.cantidad})`
@@ -93,13 +283,28 @@ exports.createSale = async (req, res) => {
         });
       }
 
+      let vuelto = null;
+      if (metodoPago === "EFECTIVO" && montoRecibido !== undefined) {
+        if (montoRecibido < total) {
+          throw new Error("NEGOCIO:Monto recibido insuficiente");
+        }
+        vuelto = Math.round((montoRecibido - total) * 100) / 100;
+      }
+
             // 4) Creo la venta con sus lineas (nested write de Prisma).
       const venta = await tx.venta.create({
         data: {
           total,
           usuarioId,
           nota: notaLimpia,
+          metodoPago,
+          montoRecibido: metodoPago === "EFECTIVO" ? (montoRecibido ?? null) : null,
+          vuelto,
           detalles: { create: lineasProcesadas.map(({ nombre, stockAnterior, stockMinimo, ...rest }) => rest) },
+        },
+        include: {
+          detalles: { include: { producto: true } },
+          atendidoPor: { select: { id: true, nombre: true, rol: true } },
         },
       });
 
@@ -159,8 +364,11 @@ exports.createSale = async (req, res) => {
       id: venta.id,
       fecha: venta.fecha,
       total: venta.total,
+      metodoPago: venta.metodoPago,
+      montoRecibido: venta.montoRecibido,
+      vuelto: venta.vuelto,
       atendidoPor: atendido,
-     nota: venta.nota,          // ← AGREGÁ ESTA LÍNEA
+     nota: venta.nota,
       detalles: lineasProcesadas.map((l) => ({
         productoId: l.productoId,
         producto: { nombre: l.nombre },
@@ -176,6 +384,8 @@ exports.createSale = async (req, res) => {
       entidadId: venta.id,
       detalle: {
         total: venta.total,
+        metodoPago: venta.metodoPago,
+        vuelto: venta.vuelto,
         cantidadLineas: lineasProcesadas.length,
         nota: notaLimpia,
       },
@@ -195,10 +405,15 @@ exports.createSale = async (req, res) => {
 // ---- GET /sales/export : descarga un .xlsx con plantilla de dos hojas ----
 exports.exportSalesExcel = async (req, res) => {
   try {
+    const filtro = construirFiltroVentas(req.query);
+    if (filtro.error) return res.status(400).json({ error: filtro.error });
+
     const ventas = await prisma.venta.findMany({
+      where: { ...filtro.where, estado: "COMPLETADA" },
       include: {
         detalles: { include: { producto: true } },
         atendidoPor: { select: { id: true, nombre: true, rol: true } },
+        anuladaPor: { select: { id: true, nombre: true, rol: true } },
       },
       orderBy: { fecha: "desc" },
     });
@@ -326,6 +541,7 @@ exports.getMyTurn = async (req, res) => {
       include: {
         detalles: { include: { producto: true } },
         atendidoPor: { select: { id: true, nombre: true, rol: true } },
+        anuladaPor: { select: { id: true, nombre: true, rol: true } },
       },
       orderBy: { fecha: "desc" },
     });
@@ -333,5 +549,131 @@ exports.getMyTurn = async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Error al listar mi turno" });
+  }
+};
+
+// ---- POST /sales/:id/anular : anula una venta y repone stock (solo admin/farmaceutico) ----
+exports.anularSale = async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: "id inválido" });
+  }
+
+  const motivo = String(req.body?.motivo || "").trim();
+  if (motivo.length < 5) {
+    return res.status(400).json({ error: "El motivo debe tener al menos 5 caracteres" });
+  }
+  if (motivo.length > 250) {
+    return res.status(400).json({ error: "El motivo no puede superar los 250 caracteres" });
+  }
+
+  try {
+    const resultado = await prisma.$transaction(async (tx) => {
+      const venta = await tx.venta.findUnique({
+        where: { id },
+        include: {
+          detalles: true,
+          atendidoPor: { select: { id: true, nombre: true, rol: true } },
+        },
+      });
+
+      if (!venta) {
+        return { status: 404, error: "Venta no encontrada" };
+      }
+
+      if (venta.estado === "ANULADA") {
+        return { status: 409, error: "La venta ya está anulada" };
+      }
+
+      const stockActualizado = [];
+      for (const linea of venta.detalles) {
+        const producto = await tx.producto.findUnique({
+          where: { id: linea.productoId },
+          select: { id: true, nombre: true, stock: true, stockMinimo: true },
+        });
+
+        if (!producto) {
+          throw new Error(`NEGOCIO:Producto ${linea.productoId} no existe`);
+        }
+
+        const stockNuevo = producto.stock + linea.cantidad;
+
+        await tx.producto.update({
+          where: { id: producto.id },
+          data: { stock: { increment: linea.cantidad } },
+        });
+
+        await tx.movimientoStock.create({
+          data: {
+            productoId: producto.id,
+            usuarioId: req.user.id,
+            tipo: "ANULACION",
+            cantidad: linea.cantidad,
+            stockAnterior: producto.stock,
+            stockNuevo,
+            motivo: `Anulación venta #${venta.id}`,
+          },
+        });
+
+        stockActualizado.push({
+          id: producto.id,
+          nombre: producto.nombre,
+          stock: stockNuevo,
+        });
+      }
+
+      const anulada = await tx.venta.update({
+        where: { id: venta.id },
+        data: {
+          estado: "ANULADA",
+          anuladaPorId: req.user.id,
+          anuladaEn: new Date(),
+          motivoAnulacion: motivo,
+        },
+        include: {
+          detalles: { include: { producto: true } },
+          atendidoPor: { select: { id: true, nombre: true, rol: true } },
+          anuladaPor: { select: { id: true, nombre: true, rol: true } },
+        },
+      });
+
+      return { venta: anulada, stockActualizado };
+    });
+
+    if (resultado.error) {
+      return res.status(resultado.status).json({ error: resultado.error });
+    }
+
+    const { venta, stockActualizado } = resultado;
+
+    req.io?.emit("stock_actualizado", stockActualizado);
+    req.io?.emit("venta_anulada", {
+      id: venta.id,
+      estado: venta.estado,
+      anuladaEn: venta.anuladaEn,
+      motivoAnulacion: venta.motivoAnulacion,
+      anuladaPor: venta.anuladaPor,
+    });
+
+    await auditar({
+      req,
+      userId: req.user.id,
+      accion: "SALE_VOID",
+      entidad: "Venta",
+      entidadId: venta.id,
+      detalle: {
+        total: venta.total,
+        motivo,
+        cantidadLineas: venta.detalles.length,
+      },
+    });
+
+    return res.json({ venta });
+  } catch (e) {
+    if (typeof e.message === "string" && e.message.startsWith("NEGOCIO:")) {
+      return res.status(400).json({ error: e.message.replace("NEGOCIO:", "") });
+    }
+    console.error(e);
+    return res.status(500).json({ error: "Error al anular la venta" });
   }
 };

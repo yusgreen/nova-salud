@@ -14,8 +14,10 @@ const { server, io } = require("../src/index");
 let baseUrl;
 let admin;
 let cajero;
+let perfil;
 let adminToken;
 let cajeroToken;
+let perfilToken;
 let paracetamol;
 let ibuprofeno;
 
@@ -56,6 +58,7 @@ describe("Nova Salud API · flujos críticos", () => {
 
     admin = await crearUsuario("Admin Test", "admin@test.pe", "admin123", "admin");
     cajero = await crearUsuario("Cajero Test", "cajero@test.pe", "cajero123", "cajero");
+    perfil = await crearUsuario("Perfil Test", "perfil@test.pe", "perfil123", "cajero");
     await crearUsuario("Farma Test", "farma@test.pe", "farma123", "farmaceutico");
 
     paracetamol = await prisma.producto.create({
@@ -84,8 +87,10 @@ describe("Nova Salud API · flujos críticos", () => {
 
     const loginAdmin = await login("admin@test.pe", "admin123");
     const loginCajero = await login("cajero@test.pe", "cajero123");
+    const loginPerfil = await login("perfil@test.pe", "perfil123");
     adminToken = loginAdmin.data.token;
     cajeroToken = loginCajero.data.token;
+    perfilToken = loginPerfil.data.token;
   });
 
   after(async () => {
@@ -146,6 +151,105 @@ describe("Nova Salud API · flujos críticos", () => {
       assert.equal(r.status, 200);
       assert.equal(r.data.user.email, "admin@test.pe");
       assert.equal(r.data.user.passwordHash, undefined);
+    });
+  });
+
+  describe("Perfil propio", () => {
+    it("actualiza el nombre y audita PROFILE_UPDATE sin exponer passwordHash", async () => {
+      const r = await request("/auth/me", {
+        method: "PUT",
+        token: perfilToken,
+        body: { nombre: "  Perfil Actualizado  " },
+      });
+
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      assert.equal(r.data.user.nombre, "Perfil Actualizado");
+      assert.equal(r.data.user.passwordHash, undefined);
+
+      const log = await prisma.auditLog.findFirst({
+        where: { accion: "PROFILE_UPDATE", entidadId: perfil.id },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(log, "debe existir un PROFILE_UPDATE");
+      const detalle = JSON.parse(log.detalle);
+      assert.equal(detalle.cambios.nombre.antes, "Perfil Test");
+      assert.equal(detalle.cambios.nombre.despues, "Perfil Actualizado");
+      assert.equal(String(log.detalle).includes("passwordHash"), false);
+    });
+
+    it("rechaza un nombre vacío", async () => {
+      const r = await request("/auth/me", {
+        method: "PUT",
+        token: perfilToken,
+        body: { nombre: "   " },
+      });
+
+      assert.equal(r.status, 400);
+      assert.match(r.data.error, /nombre/i);
+    });
+
+    it("rechaza el cambio si la contraseña actual es incorrecta", async () => {
+      const auditoriasAntes = await prisma.auditLog.count({
+        where: { accion: "PASSWORD_CHANGE", entidadId: perfil.id },
+      });
+
+      const r = await request("/auth/password", {
+        method: "PUT",
+        token: perfilToken,
+        body: { passwordActual: "incorrecta", passwordNueva: "nueva123" },
+      });
+
+      assert.equal(r.status, 400);
+      assert.match(r.data.error, /actual/i);
+      assert.equal(
+        await prisma.auditLog.count({
+          where: { accion: "PASSWORD_CHANGE", entidadId: perfil.id },
+        }),
+        auditoriasAntes,
+        "un intento fallido no debe auditar PASSWORD_CHANGE"
+      );
+
+      const loginViejo = await login("perfil@test.pe", "perfil123");
+      assert.equal(loginViejo.status, 200, "la contraseña no debe cambiar");
+    });
+
+    it("rechaza una nueva contraseña de menos de 6 caracteres", async () => {
+      const r = await request("/auth/password", {
+        method: "PUT",
+        token: perfilToken,
+        body: { passwordActual: "perfil123", passwordNueva: "12345" },
+      });
+
+      assert.equal(r.status, 400);
+      assert.match(r.data.error, /6 caracteres/i);
+    });
+
+    it("cambia la contraseña, audita PASSWORD_CHANGE y permite login con la nueva", async () => {
+      const r = await request("/auth/password", {
+        method: "PUT",
+        token: perfilToken,
+        body: { passwordActual: "perfil123", passwordNueva: "nueva123" },
+      });
+
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      assert.equal(r.data.ok, true);
+      assert.equal(r.data.passwordHash, undefined);
+
+      const log = await prisma.auditLog.findFirst({
+        where: { accion: "PASSWORD_CHANGE", entidadId: perfil.id },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(log, "debe existir un PASSWORD_CHANGE");
+      assert.equal(JSON.parse(log.detalle).email, "perfil@test.pe");
+      assert.equal(String(log.detalle).includes("nueva123"), false);
+      assert.equal(String(log.detalle).includes("passwordHash"), false);
+
+      const loginViejo = await login("perfil@test.pe", "perfil123");
+      assert.equal(loginViejo.status, 401);
+
+      const loginNuevo = await login("perfil@test.pe", "nueva123");
+      assert.equal(loginNuevo.status, 200);
+      assert.equal(loginNuevo.data.user.passwordHash, undefined);
     });
   });
 
@@ -259,6 +363,56 @@ describe("Nova Salud API · flujos críticos", () => {
         body: {},
       });
       assert.equal(r.status, 400);
+    });
+  });
+
+  describe("Filtros de ventas", () => {
+    let ventaEnero;
+    let ventaFebrero;
+
+    before(async () => {
+      ventaEnero = await prisma.venta.create({
+        data: {
+          total: 11,
+          usuarioId: admin.id,
+          fecha: new Date(2026, 0, 10, 12, 0, 0),
+        },
+      });
+      ventaFebrero = await prisma.venta.create({
+        data: {
+          total: 22,
+          usuarioId: cajero.id,
+          fecha: new Date(2026, 1, 15, 12, 0, 0),
+        },
+      });
+    });
+
+    it("sin filtros devuelve el historial completo", async () => {
+      const r = await request("/sales", { token: adminToken });
+
+      assert.equal(r.status, 200);
+      assert.ok(Array.isArray(r.data));
+      assert.ok(r.data.some((v) => v.id === ventaEnero.id));
+      assert.ok(r.data.some((v) => v.id === ventaFebrero.id));
+    });
+
+    it("filtra por rango de fechas inclusivo", async () => {
+      const r = await request("/sales?desde=2026-02-01&hasta=2026-02-28", {
+        token: adminToken,
+      });
+
+      assert.equal(r.status, 200);
+      assert.ok(r.data.some((v) => v.id === ventaFebrero.id));
+      assert.equal(r.data.some((v) => v.id === ventaEnero.id), false);
+    });
+
+    it("filtra por usuario que atendió", async () => {
+      const r = await request(`/sales?usuarioId=${admin.id}`, { token: adminToken });
+
+      assert.equal(r.status, 200);
+      assert.ok(r.data.some((v) => v.id === ventaEnero.id));
+      assert.equal(r.data.some((v) => v.id === ventaFebrero.id), false);
+      assert.ok(r.data.every((v) => v.atendidoPor.id === admin.id));
     });
   });
 
@@ -476,4 +630,422 @@ describe("Nova Salud API · flujos críticos", () => {
       assert.ok(auditoria, "el cambio debe quedar auditado");
     });
   });
+
+  describe("Gestión de usuarios", () => {
+    let usuarioCreado;
+    let tokenCreado;
+
+    it("el cajero no puede listar, crear ni cambiar usuarios", async () => {
+      const lista = await request("/users", { token: cajeroToken });
+      assert.equal(lista.status, 403);
+
+      const crear = await request("/users", {
+        method: "POST",
+        token: cajeroToken,
+        body: {
+          nombre: "Usuario Prohibido",
+          email: "prohibido@test.pe",
+          password: "prohibido123",
+          rol: "admin",
+        },
+      });
+      assert.equal(crear.status, 403);
+
+      const estado = await request(`/users/${admin.id}/estado`, {
+        method: "PUT",
+        token: cajeroToken,
+        body: { activo: false },
+      });
+      assert.equal(estado.status, 403);
+    });
+
+    it("el admin lista usuarios sin passwordHash y con estado activo", async () => {
+      const r = await request("/users", { token: adminToken });
+
+      assert.equal(r.status, 200);
+      assert.ok(Array.isArray(r.data));
+      const adminListado = r.data.find((u) => u.id === admin.id);
+      assert.ok(adminListado, "el admin debe aparecer en la lista");
+      assert.equal(adminListado.activo, true);
+      assert.ok(r.data.every((u) => u.passwordHash === undefined));
+    });
+
+    it("crea un usuario con el rol elegido, activo por defecto y audita", async () => {
+      const r = await request("/users", {
+        method: "POST",
+        token: adminToken,
+        body: {
+          nombre: "Usuario Gestión",
+          email: "gestion@test.pe",
+          password: "gestion123",
+          rol: "farmaceutico",
+        },
+      });
+
+      assert.equal(r.status, 201, JSON.stringify(r.data));
+      usuarioCreado = r.data.user;
+      assert.equal(usuarioCreado.rol, "farmaceutico");
+      assert.equal(usuarioCreado.activo, true);
+      assert.equal(usuarioCreado.passwordHash, undefined);
+
+      const log = await prisma.auditLog.findFirst({
+        where: { accion: "USER_CREATE", entidadId: usuarioCreado.id },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(log, "debe existir un USER_CREATE");
+      const detalle = JSON.parse(log.detalle);
+      assert.equal(detalle.rol, "farmaceutico");
+      assert.equal(detalle.activo, true);
+      assert.equal(String(log.detalle).includes("gestion123"), false);
+    });
+
+    it("actualiza nombre y rol y audita el diff", async () => {
+      const r = await request(`/users/${usuarioCreado.id}`, {
+        method: "PUT",
+        token: adminToken,
+        body: { nombre: "Usuario Actualizado", rol: "cajero" },
+      });
+
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      usuarioCreado = r.data.user;
+      assert.equal(usuarioCreado.nombre, "Usuario Actualizado");
+      assert.equal(usuarioCreado.rol, "cajero");
+
+      const log = await prisma.auditLog.findFirst({
+        where: { accion: "USER_UPDATE", entidadId: usuarioCreado.id },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(log, "debe existir un USER_UPDATE");
+      const detalle = JSON.parse(log.detalle);
+      assert.equal(detalle.cambios.nombre.antes, "Usuario Gestión");
+      assert.equal(detalle.cambios.nombre.despues, "Usuario Actualizado");
+      assert.equal(detalle.cambios.rol.antes, "farmaceutico");
+      assert.equal(detalle.cambios.rol.despues, "cajero");
+    });
+
+    it("desactiva, audita USER_STATUS y rechaza login y tokens del inactivo", async () => {
+      const loginAntes = await login("gestion@test.pe", "gestion123");
+      assert.equal(loginAntes.status, 200);
+      tokenCreado = loginAntes.data.token;
+
+      const r = await request(`/users/${usuarioCreado.id}/estado`, {
+        method: "PUT",
+        token: adminToken,
+        body: { activo: false },
+      });
+
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      assert.equal(r.data.user.activo, false);
+
+      const log = await prisma.auditLog.findFirst({
+        where: { accion: "USER_STATUS", entidadId: usuarioCreado.id },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(log, "debe existir un USER_STATUS");
+      const detalle = JSON.parse(log.detalle);
+      assert.equal(detalle.cambios.activo.antes, true);
+      assert.equal(detalle.cambios.activo.despues, false);
+
+      const loginInactivo = await login("gestion@test.pe", "gestion123");
+      assert.equal(loginInactivo.status, 401);
+      assert.equal(loginInactivo.data.error, "Credenciales inválidas");
+
+      const fallo = await prisma.auditLog.findFirst({
+        where: { accion: "LOGIN_FALLIDO", userId: usuarioCreado.id },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(fallo, "el login inactivo debe auditar LOGIN_FALLIDO");
+
+      const me = await request("/auth/me", { token: tokenCreado });
+      assert.equal(me.status, 401, "el token de un inactivo debe rechazarse");
+    });
+
+    it("protege al último admin activo", async () => {
+      const desactivar = await request(`/users/${admin.id}/estado`, {
+        method: "PUT",
+        token: adminToken,
+        body: { activo: false },
+      });
+      assert.equal(desactivar.status, 400);
+      assert.match(desactivar.data.error, /propia cuenta/i);
+
+      const cambiarRol = await request(`/users/${admin.id}`, {
+        method: "PUT",
+        token: adminToken,
+        body: { rol: "cajero" },
+      });
+      assert.equal(cambiarRol.status, 400);
+      assert.match(cambiarRol.data.error, /propio rol/i);
+
+      const actual = await prisma.usuario.findUnique({ where: { id: admin.id } });
+      assert.equal(actual.rol, "admin");
+      assert.equal(actual.activo, true);
+    });
+  });
+  describe("Métodos de pago", () => {
+  it("calcula el vuelto en efectivo y lo devuelve en la venta", async () => {
+    const r = await request("/sales", {
+      method: "POST",
+      token: cajeroToken,
+      body: {
+        detalles: [{ productoId: paracetamol.id, cantidad: 1 }],
+        metodoPago: "EFECTIVO",
+        montoRecibido: 20,
+      },
+    });
+
+    assert.equal(r.status, 201, JSON.stringify(r.data));
+    assert.equal(r.data.venta.metodoPago, "EFECTIVO");
+    assert.equal(r.data.venta.montoRecibido, 20);
+    assert.equal(r.data.venta.vuelto, 15);
+  });
+
+  it("rechaza un monto recibido insuficiente en efectivo", async () => {
+    const r = await request("/sales", {
+      method: "POST",
+      token: cajeroToken,
+      body: {
+        detalles: [{ productoId: paracetamol.id, cantidad: 1 }],
+        metodoPago: "EFECTIVO",
+        montoRecibido: 1,
+      },
+    });
+
+    assert.equal(r.status, 400);
+    assert.match(r.data.error, /insuficiente/i);
+  });
+
+  it("mantiene compatibilidad cuando no se envían los campos nuevos", async () => {
+    const r = await request("/sales", {
+      method: "POST",
+      token: cajeroToken,
+      body: {
+        detalles: [{ productoId: paracetamol.id, cantidad: 1 }],
+      },
+    });
+
+    assert.equal(r.status, 201, JSON.stringify(r.data));
+    assert.equal(r.data.venta.metodoPago, "EFECTIVO");
+    assert.equal(r.data.venta.montoRecibido, null);
+    assert.equal(r.data.venta.vuelto, null);
+  });
+  describe("Anulación de ventas", () => {
+    let ventaAnulable;
+    let stockAntes;
+
+    before(async () => {
+      stockAntes = (await prisma.producto.findUnique({ where: { id: paracetamol.id } })).stock;
+      const r = await request("/sales", {
+        method: "POST",
+        token: adminToken,
+        body: { detalles: [{ productoId: paracetamol.id, cantidad: 1 }] },
+      });
+      assert.equal(r.status, 201, JSON.stringify(r.data));
+      ventaAnulable = r.data.venta;
+    });
+
+    it("el cajero no puede anular ventas", async () => {
+      const r = await request(`/sales/${ventaAnulable.id}/anular`, {
+        method: "POST",
+        token: cajeroToken,
+        body: { motivo: "intento no autorizado" },
+      });
+      assert.equal(r.status, 403);
+    });
+
+    it("rechaza un motivo demasiado corto", async () => {
+      const r = await request(`/sales/${ventaAnulable.id}/anular`, {
+        method: "POST",
+        token: adminToken,
+        body: { motivo: "no" },
+      });
+      assert.equal(r.status, 400);
+      assert.match(r.data.error, /5 caracteres/i);
+    });
+
+    it("anula la venta, repone el stock y audita SALE_VOID", async () => {
+      const r = await request(`/sales/${ventaAnulable.id}/anular`, {
+        method: "POST",
+        token: adminToken,
+        body: { motivo: "Error en el cobro de prueba" },
+      });
+
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      assert.equal(r.data.venta.estado, "ANULADA");
+      assert.equal(r.data.venta.motivoAnulacion, "Error en el cobro de prueba");
+      assert.ok(r.data.venta.anuladaEn);
+
+      const producto = await prisma.producto.findUnique({ where: { id: paracetamol.id } });
+      assert.equal(producto.stock, stockAntes, "el stock debe reponerse");
+
+      const movimiento = await prisma.movimientoStock.findFirst({
+        where: { productoId: paracetamol.id, tipo: "ANULACION" },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(movimiento, "debe existir un movimiento ANULACION");
+      assert.equal(movimiento.cantidad, 1);
+
+      const log = await prisma.auditLog.findFirst({
+        where: { accion: "SALE_VOID", entidadId: ventaAnulable.id },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(log, "debe existir un SALE_VOID");
+      const detalle = JSON.parse(log.detalle);
+      assert.equal(detalle.motivo, "Error en el cobro de prueba");
+    });
+
+    it("no permite anular dos veces (409)", async () => {
+      const r = await request(`/sales/${ventaAnulable.id}/anular`, {
+        method: "POST",
+        token: adminToken,
+        body: { motivo: "segundo intento de anulación" },
+      });
+      assert.equal(r.status, 409);
+      assert.match(r.data.error, /anulada/i);
+    });
+
+    it("las ventas anuladas quedan marcadas y no se borran", async () => {
+      const r = await request("/sales", { token: adminToken });
+      assert.equal(r.status, 200);
+      const anulada = r.data.find((v) => v.id === ventaAnulable.id);
+      assert.ok(anulada, "la venta anulada debe seguir en el historial");
+      assert.equal(anulada.estado, "ANULADA");
+      assert.equal(anulada.motivoAnulacion, "Error en el cobro de prueba");
+
+      const completadas = r.data.filter((v) => v.estado !== "ANULADA");
+      assert.ok(completadas.every((v) => v.estado !== "ANULADA"));
+    });
+  });
+  describe("Productos inactivos y entradas", () => {
+    let productoInactivo;
+    let productoEntrada;
+
+    before(async () => {
+      const r1 = await request("/products", {
+        method: "POST",
+        token: adminToken,
+        body: { nombre: "Producto Inactivo Test", precio: 4, stock: 3 },
+      });
+      assert.equal(r1.status, 201, JSON.stringify(r1.data));
+      productoInactivo = r1.data;
+
+      const desactivar = await request(`/products/${productoInactivo.id}/estado`, {
+        method: "PUT",
+        token: adminToken,
+        body: { activo: false },
+      });
+      assert.equal(desactivar.status, 200, JSON.stringify(desactivar.data));
+      assert.equal(desactivar.data.activo, false);
+
+      const r2 = await request("/products", {
+        method: "POST",
+        token: adminToken,
+        body: { nombre: "Producto Entrada Test", precio: 7, stock: 2 },
+      });
+      assert.equal(r2.status, 201, JSON.stringify(r2.data));
+      productoEntrada = r2.data;
+    });
+
+    it("rechaza vender un producto inactivo", async () => {
+      const r = await request("/sales", {
+        method: "POST",
+        token: cajeroToken,
+        body: { detalles: [{ productoId: productoInactivo.id, cantidad: 1 }] },
+      });
+      assert.equal(r.status, 400);
+      assert.match(r.data.error, /inactivo/i);
+    });
+
+    it("la entrada de mercadería suma stock y crea un movimiento ENTRADA", async () => {
+      const antes = (await prisma.producto.findUnique({ where: { id: productoEntrada.id } })).stock;
+      const r = await request(`/products/${productoEntrada.id}/entrada`, {
+        method: "POST",
+        token: adminToken,
+        body: { cantidad: 5, proveedor: "Proveedor Test", motivo: "Reposición semanal" },
+      });
+
+      assert.equal(r.status, 201, JSON.stringify(r.data));
+      assert.equal(r.data.producto.stock, antes + 5);
+
+      const movimiento = await prisma.movimientoStock.findFirst({
+        where: { productoId: productoEntrada.id, tipo: "ENTRADA" },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(movimiento, "debe existir un movimiento ENTRADA");
+      assert.equal(movimiento.cantidad, 5);
+      assert.equal(movimiento.stockAnterior, antes);
+      assert.equal(movimiento.stockNuevo, antes + 5);
+      assert.match(movimiento.motivo, /Reposición semanal/);
+    });
+
+    it("rechaza una entrada con cantidad inválida", async () => {
+      const r = await request(`/products/${productoEntrada.id}/entrada`, {
+        method: "POST",
+        token: adminToken,
+        body: { cantidad: 0, motivo: "Cantidad inválida" },
+      });
+      assert.equal(r.status, 400);
+      assert.match(r.data.error, /cantidad/i);
+    });
+  });
+  describe("Cierre de caja", () => {
+    const fechaHoy = new Date().toISOString().slice(0, 10);
+    let ventaCajero;
+    let ventaAdmin;
+
+    before(async () => {
+      const r1 = await request("/sales", {
+        method: "POST",
+        token: cajeroToken,
+        body: {
+          detalles: [{ productoId: paracetamol.id, cantidad: 1 }],
+          metodoPago: "EFECTIVO",
+          montoRecibido: 10,
+        },
+      });
+      assert.equal(r1.status, 201, JSON.stringify(r1.data));
+      ventaCajero = r1.data.venta;
+
+      const r2 = await request("/sales", {
+        method: "POST",
+        token: adminToken,
+        body: {
+          detalles: [{ productoId: ibuprofeno.id, cantidad: 1 }],
+          metodoPago: "TARJETA",
+        },
+      });
+      assert.equal(r2.status, 201, JSON.stringify(r2.data));
+      ventaAdmin = r2.data.venta;
+    });
+
+    it("totales por método para el día", async () => {
+      const r = await request(`/sales/cierre?fecha=${fechaHoy}`, {
+        token: adminToken,
+      });
+
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      assert.equal(r.data.fecha, fechaHoy);
+      assert.ok(r.data.resumen.cantidadVentas >= 2);
+
+      const efectivo = r.data.resumen.porMetodo.find((m) => m.metodo === "EFECTIVO");
+      const tarjeta = r.data.resumen.porMetodo.find((m) => m.metodo === "TARJETA");
+      assert.ok(efectivo, "debe existir el total en efectivo");
+      assert.ok(tarjeta, "debe existir el total con tarjeta");
+      assert.ok(efectivo.total >= 5);
+      assert.ok(tarjeta.total >= 8);
+      assert.equal(r.data.resumen.efectivoEsperado >= 5, true);
+    });
+
+    it("el cajero no ve ventas ajenas aunque pida otro usuario", async () => {
+      const r = await request(`/sales/cierre?fecha=${fechaHoy}&usuarioId=${admin.id}`, {
+        token: cajeroToken,
+      });
+
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      assert.equal(r.data.usuario.id, cajero.id);
+      assert.ok((r.data.ventas || []).every((v) => v.atendidoPor.id === cajero.id));
+      assert.ok(!(r.data.ventas || []).some((v) => v.id === ventaAdmin.id));
+    });
+  });
+});
 });

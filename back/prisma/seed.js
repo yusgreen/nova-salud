@@ -19,14 +19,20 @@ async function main() {
     data: { nombre: "Administrador", email: "admin@novasalud.pe", passwordHash: hash, rol: "admin" },
   });
 
+  await prisma.configuracion.upsert({
+    where: { id: 1 },
+    update: {},
+    create: { id: 1, lema: "Sistema de inventario y ventas en tiempo real" },
+  });
+
   // 5 productos de botica. Dos ya por debajo del umbral (stock <= stockMinimo)
   // para que el semaforo de alerta tenga algo que prender desde el dia 1.
   const productos = [
-    { codigo: "P-0001", categoria: "Analgésico", nombre: "Paracetamol 500mg", descripcion: "Analgesico", precio: 5.5, imagen: "/images/paracetamol.svg", stock: 120, stockMinimo: 30 },
+    { codigo: "P-0001", categoria: "Analgésico", nombre: "Paracetamol 500mg", descripcion: "Analgésico", precio: 5.5, imagen: "/images/paracetamol.svg", stock: 120, stockMinimo: 30 },
     { codigo: "P-0002", categoria: "Antiinflamatorio", nombre: "Ibuprofeno 400mg",  descripcion: "Antiinflamatorio", precio: 8.0, imagen: "/images/ibuprofeno.svg", stock: 12, stockMinimo: 20 }, // ALERTA
-    { codigo: "P-0003", categoria: "Antibiótico", nombre: "Amoxicilina 500mg", descripcion: "Antibiotico", precio: 15.0, imagen: "/images/amoxicilina.svg", stock: 60, stockMinimo: 15 },
+    { codigo: "P-0003", categoria: "Antibiótico", nombre: "Amoxicilina 500mg", descripcion: "Antibiótico", precio: 15.0, imagen: "/images/amoxicilina.svg", stock: 60, stockMinimo: 15 },
     { codigo: "P-0004", categoria: "Suplemento", nombre: "Vitamina C 1g",     descripcion: "Suplemento", precio: 12.0, imagen: "/images/vitamina.svg", stock: 5, stockMinimo: 10 }, // ALERTA
-    { codigo: "P-0005", categoria: "Hidratante", nombre: "Solucion salina",   descripcion: "Hidratante", precio: 6.0, imagen: "/images/salina.svg", stock: 200, stockMinimo: 40 },
+    { codigo: "P-0005", categoria: "Hidratante", nombre: "Solución salina",   descripcion: "Hidratante", precio: 6.0, imagen: "/images/salina.svg", stock: 200, stockMinimo: 40 },
   ];
   for (const p of productos) await prisma.producto.create({ data: p });
 

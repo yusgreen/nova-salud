@@ -20,9 +20,11 @@ model Usuario {
   email        String   @unique          // @unique = no puede haber dos cuentas con el mismo mail
   passwordHash String                    // bcrypt, NUNCA texto plano. La condicion 1 vive aqui.
   rol          String   @default("cajero") // admin | farmaceutico | cajero
+  activo       Boolean  @default(true)     // false = login y tokens rechazados
   // Por que String y no enum: SQLite no soporta enums nativos en Prisma.
   // Con String evitamos que db push reviente en la primera creacion de tablas.
   ventas       Venta[]                    // relacion inversa: un usuario tiene muchas ventas
+  ventasAnuladas Venta[] @relation("VentaAnuladaPor")
   audits AuditLog[] @relation("AuditUsuario")
 }
 
@@ -42,6 +44,7 @@ model Producto {
   unidad           String          @default("unidad")
   precioCompra     Float?                          // costo para calcular el margen en la UI
   fechaVencimiento DateTime?
+  activo           Boolean         @default(true) // false = no visible en Caja ni vendible
   detalles         DetalleVenta[]                 // relacion inversa: un producto aparece en muchos detalles de venta
   movimientos      MovimientoStock[]
 }
@@ -67,6 +70,14 @@ model Venta {
   id          Int            @id @default(autoincrement())
   fecha       DateTime       @default(now()) // se llena sola al crear la venta
   total       Float
+  metodoPago  String         @default("EFECTIVO") // EFECTIVO | TARJETA | YAPE_PLIN
+  montoRecibido Float?                          // solo efectivo
+  vuelto      Float?                            // solo efectivo
+  estado      String         @default("COMPLETADA") // COMPLETADA | ANULADA
+  anuladaPorId Int?
+  anuladaPor  Usuario?       @relation("VentaAnuladaPor", fields: [anuladaPorId], references: [id])
+  anuladaEn   DateTime?
+  motivoAnulacion String?
   usuarioId   Int                            // foreign key: quien atendio
   atendidoPor Usuario        @relation(fields: [usuarioId], references: [id])
   detalles    DetalleVenta[]

@@ -8,20 +8,24 @@ import Topbar from "./components/Topbar";
 import Inventario from "./components/Inventario";
 import Caja from "./components/Caja";
 import Ventas from "./components/Ventas";
+import CierreCaja from "./components/CierreCaja";
 import Auditoria from "./components/Auditoria";
 import Configuracion from "./components/Configuracion";
+import Usuarios from "./components/Usuarios";
 import Toast from "./components/Toast";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import { IconInventario, IconCaja, IconVentas, IconAuditoria, IconPanel, IconLogo, IconConfiguracion } from "./components/Icons";
+import { IconInventario, IconCaja, IconVentas, IconAuditoria, IconPanel, IconLogo, IconConfiguracion, IconUsuarios, IconCierreCaja } from "./components/Icons";
 import Dashboard from "./components/Dashboard";
 // Un solo lugar para la navegación. icon = componente SVG (hereda currentColor).
 const NAV = [
   { id: "dashboard",  label: "Panel",      icon: IconPanel,      visible: () => true },  { id: "inventario", label: "Inventario", icon: IconInventario, visible: () => true },
   { id: "caja",       label: "Caja",       icon: IconCaja,       visible: () => true },
   { id: "ventas",     label: "Ventas",     icon: IconVentas,     visible: (g) => g },
+  { id: "cierre",     label: "Cierre de caja", icon: IconCierreCaja, visible: () => true },
   { id: "auditoria",  label: "Auditoría",  icon: IconAuditoria,  visible: (g) => g },
   { id: "configuracion", label: "Configuración", icon: IconConfiguracion, visible: () => true, adminOnly: true },
+  { id: "usuarios", label: "Usuarios", icon: IconUsuarios, visible: () => true, adminOnly: true },
 ];
 
 export default function App() {
@@ -32,6 +36,17 @@ export default function App() {
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   useEffect(() => { setTab("inventario"); setMenuAbierto(false); }, [usuario?.id]);
+
+  // Si la sesión vence, AuthContext limpia el usuario y aquí aseguramos el Login.
+  useEffect(() => {
+    function onSesionExpirada() {
+      setView("login");
+      setTab("inventario");
+      setMenuAbierto(false);
+    }
+    window.addEventListener("nova:session-expired", onSesionExpirada);
+    return () => window.removeEventListener("nova:session-expired", onSesionExpirada);
+  }, []);
 
   if (loading) return <div className="auth-shell"><p className="status">Verificando sesión…</p></div>;
 
@@ -79,8 +94,10 @@ export default function App() {
               <main className="content" key={tab}>                {tab === "dashboard" && <Dashboard />}                {tab === "inventario" && <Inventario />}
                 {tab === "caja" && <Caja />}
                 {tab === "ventas" && puedeGestionarInventario && <Ventas />}
+                {tab === "cierre" && <CierreCaja />}
                 {tab === "auditoria" && puedeGestionarInventario && <Auditoria />}
                 {tab === "configuracion" && isAdmin && <Configuracion />}
+                {tab === "usuarios" && isAdmin && <Usuarios />}
               </main>
             </div>
           </div>

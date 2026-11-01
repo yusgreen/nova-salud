@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useConfig } from "../context/ConfigContext";
+import { useTheme } from "../context/ThemeContext";
+import { usePreferencias } from "../context/PreferenciasContext";
 import { formatearMoneda } from "../services/format";
 import { IconConfiguracion, IconLogo } from "./Icons";
 
@@ -13,6 +15,9 @@ const CAMPOS = [
 
 export default function Configuracion() {
   const { config, actualizar } = useConfig();
+  const { preferencia, cambiarTema } = useTheme();
+  const { prefs, actualizar: actualizarPrefs } = usePreferencias();
+  const [tab, setTab] = useState("apariencia");
   const [form, setForm] = useState(config);
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState("");
@@ -71,17 +76,138 @@ export default function Configuracion() {
           <div>
             <h2>Configuración</h2>
             <p className="muted">
-              Ajustes globales del sistema. Solo el administrador puede modificarlos.
+              {tab === "sistema"
+                ? "Ajustes globales del sistema. Solo el administrador puede modificarlos."
+                : "Ajustes de este navegador. Se guarda en este navegador."}
             </p>
           </div>
         </div>
-        <span className="config-badge">Solo admin</span>
+        {tab === "sistema" && <span className="config-badge">Solo admin</span>}
       </header>
 
-      <div className="config-grid">
-        <form className="config-card" onSubmit={onSubmit}>
+      <div className="tabs" style={{ marginBottom: 16 }}>
+        {[
+          { v: "apariencia", t: "Apariencia" },
+          { v: "preferencias", t: "Preferencias" },
+          { v: "sistema", t: "Sistema" },
+        ].map((o) => (
+          <button
+            key={o.v}
+            type="button"
+            className={`tab ${tab === o.v ? "active" : ""}`}
+            onClick={() => setTab(o.v)}
+          >
+            {o.t}
+          </button>
+        ))}
+      </div>
+
+      {tab === "apariencia" && (
+        <div className="config-card">
           <section className="config-section">
-            <h3>Identidad</h3>
+            <h3>Tema</h3>
+            <div className="tabs">
+              {[
+                { v: "light", t: "Claro" },
+                { v: "dark", t: "Oscuro" },
+                { v: "system", t: "Sistema" },
+              ].map((o) => (
+                <button
+                  key={o.v}
+                  type="button"
+                  className={`tab ${preferencia === o.v ? "active" : ""}`}
+                  onClick={() => cambiarTema(o.v)}
+                >
+                  {o.t}
+                </button>
+              ))}
+            </div>
+            <p className="config-help">
+              Se guarda en este navegador. "Sistema" sigue la preferencia del SO.
+            </p>
+          </section>
+
+          <section className="config-section">
+            <h3>Modo compacto</h3>
+            <div className="config-switch">
+              <span>
+                <strong>Activar modo compacto</strong>
+                <span className="muted small">
+                  Reduce espaciados y tamaños para mostrar más información.
+                </span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={prefs.compacto}
+                className={`status-switch ${prefs.compacto ? "on" : ""}`}
+                onClick={() => actualizarPrefs({ compacto: !prefs.compacto })}
+              >
+                <span className="status-switch-dot" />
+              </button>
+            </div>
+          </section>
+
+          <section className="config-section">
+            <h3>Tamaño de fuente</h3>
+            <label>
+              Tamaño
+              <select
+                value={prefs.tamanoFuente}
+                onChange={(e) => actualizarPrefs({ tamanoFuente: e.target.value })}
+              >
+                <option value="pequeno">Pequeño</option>
+                <option value="medio">Mediano</option>
+                <option value="grande">Grande</option>
+              </select>
+            </label>
+          </section>
+        </div>
+      )}
+
+      {tab === "preferencias" && (
+        <div className="config-card">
+          <section className="config-section">
+            <h3>Formato y paginación</h3>
+            <div className="config-row">
+              <label>
+                Formato de fecha
+                <select
+                  value={prefs.formatoFecha}
+                  onChange={(e) => actualizarPrefs({ formatoFecha: e.target.value })}
+                >
+                  <option value="dd/mm/yyyy">DD/MM/AAAA</option>
+                  <option value="mm/dd/yyyy">MM/DD/AAAA</option>
+                  <option value="yyyy-mm-dd">AAAA-MM-DD</option>
+                </select>
+              </label>
+              <label>
+                Filas por página
+                <input
+                  type="number"
+                  min="5"
+                  max="100"
+                  value={prefs.filasPorPagina}
+                  onChange={(e) =>
+                    actualizarPrefs({
+                      filasPorPagina: e.target.value === "" ? prefs.filasPorPagina : Number(e.target.value),
+                    })
+                  }
+                />
+              </label>
+            </div>
+            <p className="config-help">
+              Se guarda en este navegador.
+            </p>
+          </section>
+        </div>
+      )}
+
+      {tab === "sistema" && (
+        <div className="config-grid">
+          <form className="config-card" onSubmit={onSubmit}>
+            <section className="config-section">
+              <h3>Identidad</h3>
             <label>
               Nombre del negocio
               <input
@@ -145,11 +271,15 @@ export default function Configuracion() {
                   Muestra la pista de acceso en la pantalla de Login.
                 </span>
               </span>
-              <input
-                type="checkbox"
-                checked={form.mostrarAyudaDemo}
-                onChange={(e) => set("mostrarAyudaDemo", e.target.checked)}
-              />
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.mostrarAyudaDemo}
+                className={`status-switch ${form.mostrarAyudaDemo ? "on" : ""}`}
+                onClick={() => set("mostrarAyudaDemo", !form.mostrarAyudaDemo)}
+              >
+                <span className="status-switch-dot" />
+              </button>
             </label>
           </section>
 
@@ -201,6 +331,7 @@ export default function Configuracion() {
           </ul>
         </aside>
       </div>
+      )}
     </div>
   );
 }

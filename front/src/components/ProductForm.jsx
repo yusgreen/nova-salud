@@ -303,7 +303,7 @@ export default function ProductForm({ initial, onClose }) {
                     value={form.codigoBarras}
                     onChange={(e) => set("codigoBarras", e.target.value)}
                     onBlur={() => marcar("codigoBarras")}
-                    placeholder="7501234567890"
+                    placeholder="Escanea o escribe el código"
                   />
                 </Campo>
                 <Campo etiqueta="Fecha de vencimiento" error={verError("fechaVencimiento")}>

@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nova Salud</title>
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem("nova_theme") || "system";
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          var efectivo = pref === "dark" ? "dark" : pref === "light" ? "light" : (dark ? "dark" : "light");
+          document.documentElement.setAttribute("data-theme", efectivo);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
