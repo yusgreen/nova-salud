@@ -13,16 +13,18 @@ const salesRoutes = require("./routes/sales");
 const { setIo, attachIo } = require("./middleware/attachIo");
 const registerSocketHandlers = require("./sockets/inventorySocket");
 
+const CORS_ORIGIN = process.env.CORS_ORIGIN || (process.env.NODE_ENV === "production" ? "https://nova-salud-1.onrender.com" : "http://localhost:5173");
+
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173" }));
+app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 
 // 1) Server HTTP + Socket.io creados TEMPRANO (el http.createServer del eslabon A
 //    paga su dividendo aca: io se monta sobre el mismo server, sin refactor).
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: process.env.CORS_ORIGIN || "http://localhost:5173" },
+  cors: { origin: CORS_ORIGIN },
 });
 setIo(io);                       // 2) guarda la ref para attachIo
 registerSocketHandlers(io);      // 3) registra el "quien escucha" (esqueleto)
