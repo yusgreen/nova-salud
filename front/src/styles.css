@@ -1078,7 +1078,6 @@ body {
 /* --- Configuracion (solo admin) --- */
 .sidebar-brand { min-width: 0; }
 .sidebar-name { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sidebar-tag { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 select,
 input[type="date"] {
