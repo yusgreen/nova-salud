@@ -101,6 +101,8 @@ nova-salud/
 - Regla de archivos: guardar en UTF-8 sin BOM; no usar PowerShell `Set-Content`/`Out-File` para escribirlos.
 - Auditoría (2026-11): error handler global JSON en backend, CORS restringido (`CORS_ORIGIN`, fallback producción front Render), JWT fail-fast en producción, redondeo a 2 decimales en total de venta, validación `userId` auditoría, ProductContext stale closure corregido, Caja NaN corregido, ConfigContext expone error, Inventario estado faltante declarado, skeleton Caja con tokens.
 
+- CORS en Render: el backend quedó con fallback producción `https://nova-salud-1.onrender.com` para el front desplegado en Render; se debe setear `CORS_ORIGIN` en el backend de Render con ese valor y redeploy para persistirlo.
+
 ## Convenciones de codigo
 
 - Backend: CommonJS (`"type": "commonjs"`); rutas en plural; un controller por recurso; middleware de auth.
