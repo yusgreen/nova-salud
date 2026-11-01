@@ -89,11 +89,17 @@ exports.updateSettings = async (req, res) => {
     const invalido = validar(data);
     if (invalido) return res.status(400).json({ error: invalido });
 
-    await obtenerConfiguracion();
-
-    const config = await prisma.configuracion.update({
+    const config = await prisma.configuracion.upsert({
       where: { id: 1 },
-      data,
+      update: data,
+      create: {
+        id: 1,
+        nombreNegocio: "Nova Salud",
+        lema: "Sistema de inventario y ventas en tiempo real",
+        moneda: "S/",
+        umbralStockBajo: 10,
+        mostrarAyudaDemo: true,
+      },
     });
 
     await auditar({
