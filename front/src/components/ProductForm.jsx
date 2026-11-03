@@ -43,8 +43,8 @@ function fechaCorta(iso) {
 
 function Campo({ etiqueta, hint, error, children }) {
   return (
-    <label className={error ? "campo-error" : ""}>
-      {etiqueta}
+    <label className={`field ${error ? "campo-error" : ""}`}>
+      <span className="label">{etiqueta}</span>
       {children}
       {hint && <span className="campo-hint">{hint}</span>}
       {error && <span className="field-error">{error}</span>}
@@ -194,6 +194,7 @@ export default function ProductForm({ initial, onClose }) {
               <div className="form-row-2">
                 <Campo etiqueta="Nombre *" error={verError("nombre")}>
                   <input
+                    className="input"
                     autoFocus
                     value={form.nombre}
                     onChange={(e) => set("nombre", e.target.value)}
@@ -207,6 +208,7 @@ export default function ProductForm({ initial, onClose }) {
                   error={verError("codigo")}
                 >
                   <input
+                    className="input"
                     value={form.codigo}
                     onChange={(e) => set("codigo", e.target.value)}
                     onBlur={() => marcar("codigo")}
@@ -217,6 +219,7 @@ export default function ProductForm({ initial, onClose }) {
               <div className="form-row-2">
                 <Campo etiqueta="Categoría" error={verError("categoria")}>
                   <input
+                    className="input"
                     list="categorias-producto"
                     value={form.categoria}
                     onChange={(e) => set("categoria", e.target.value)}
@@ -226,6 +229,7 @@ export default function ProductForm({ initial, onClose }) {
                 </Campo>
                 <Campo etiqueta="Proveedor" error={verError("proveedor")}>
                   <input
+                    className="input"
                     value={form.proveedor}
                     onChange={(e) => set("proveedor", e.target.value)}
                     onBlur={() => marcar("proveedor")}
@@ -235,6 +239,7 @@ export default function ProductForm({ initial, onClose }) {
               </div>
               <Campo etiqueta="Descripción" error={verError("descripcion")}>
                 <input
+                  className="input"
                   value={form.descripcion}
                   onChange={(e) => set("descripcion", e.target.value)}
                   onBlur={() => marcar("descripcion")}
@@ -248,6 +253,7 @@ export default function ProductForm({ initial, onClose }) {
               <div className="form-row-2">
                 <Campo etiqueta={`Precio de venta (${config.moneda}) *`} error={verError("precio")}>
                   <input
+                    className="input"
                     type="number"
                     step="0.01"
                     min="0"
@@ -258,6 +264,7 @@ export default function ProductForm({ initial, onClose }) {
                 </Campo>
                 <Campo etiqueta={`Precio de compra (${config.moneda})`} error={verError("precioCompra")}>
                   <input
+                    className="input"
                     type="number"
                     step="0.01"
                     min="0"
@@ -270,6 +277,7 @@ export default function ProductForm({ initial, onClose }) {
               <div className="form-row-3">
                 <Campo etiqueta="Stock *" error={verError("stock")}>
                   <input
+                    className="input"
                     type="number"
                     min="0"
                     step="1"
@@ -280,6 +288,7 @@ export default function ProductForm({ initial, onClose }) {
                 </Campo>
                 <Campo etiqueta="Stock mínimo *" error={verError("stockMinimo")}>
                   <input
+                    className="input"
                     type="number"
                     min="0"
                     step="1"
@@ -290,6 +299,7 @@ export default function ProductForm({ initial, onClose }) {
                 </Campo>
                 <Campo etiqueta="Unidad *" error={verError("unidad")}>
                   <input
+                    className="input"
                     list="unidades-producto"
                     value={form.unidad}
                     onChange={(e) => set("unidad", e.target.value)}
@@ -300,6 +310,7 @@ export default function ProductForm({ initial, onClose }) {
               <div className="form-row-2">
                 <Campo etiqueta="Código de barras" error={verError("codigoBarras")}>
                   <input
+                    className="input"
                     value={form.codigoBarras}
                     onChange={(e) => set("codigoBarras", e.target.value)}
                     onBlur={() => marcar("codigoBarras")}
@@ -308,6 +319,7 @@ export default function ProductForm({ initial, onClose }) {
                 </Campo>
                 <Campo etiqueta="Fecha de vencimiento" error={verError("fechaVencimiento")}>
                   <input
+                    className="input"
                     type="date"
                     value={form.fechaVencimiento}
                     onChange={(e) => set("fechaVencimiento", e.target.value)}
@@ -325,6 +337,7 @@ export default function ProductForm({ initial, onClose }) {
                 error={verError("imagen")}
               >
                 <input
+                  className="input"
                   value={form.imagen}
                   onChange={(e) => set("imagen", e.target.value)}
                   onBlur={() => marcar("imagen")}
@@ -407,21 +420,21 @@ export default function ProductForm({ initial, onClose }) {
           <div className="discard-bar" role="alert">
             <span>Tienes cambios sin guardar.</span>
             <div>
-              <button type="button" className="btn-ghost btn-sm" onClick={() => setConfirmarDescarte(false)}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmarDescarte(false)}>
                 Seguir editando
               </button>
-              <button type="button" className="btn-primary btn-danger btn-sm" onClick={onClose}>
+              <button type="button" className="btn btn-danger btn-sm" onClick={onClose}>
                 Descartar
               </button>
             </div>
           </div>
         )}
 
-        <div className="modal-foot">
-          <button type="button" className="btn-ghost" onClick={pedirCerrar} disabled={busy}>
+        <div className="modal-actions">
+          <button type="button" className="btn btn-ghost" onClick={pedirCerrar} disabled={busy}>
             Cancelar
           </button>
-          <button type="submit" className="btn-primary" disabled={busy || !esValido}>
+          <button type="submit" className="btn btn-primary" disabled={busy || !esValido}>
             {busy ? "Guardando…" : esEdicion ? "Guardar cambios" : "Crear producto"}
           </button>
         </div>

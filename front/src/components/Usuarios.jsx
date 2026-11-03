@@ -193,124 +193,122 @@ export default function Usuarios() {
     : "";
 
   return (
-    <div className="users-page">
-      <header className="users-head">
-        <div className="users-title">
-          <span className="users-icon" aria-hidden="true">
-            <IconUsuarios />
-          </span>
-          <div>
-            <h2>Usuarios</h2>
-            <p className="muted">Administra roles y accesos del equipo.</p>
-          </div>
+    <div className="users">
+      <header className="page-head">
+        <div>
+          <p className="kicker">Usuarios</p>
+          <h2 className="page-title">Equipo</h2>
+          <p className="page-sub">Administra roles y accesos del equipo.</p>
         </div>
-        <div className="users-actions">
-          <span className="config-badge">Solo admin</span>
-          <button type="button" className="btn-primary" onClick={abrirNuevo}>
-            <IconPlus className="btn-icon" aria-hidden="true" />
+        <div className="toolbar-row">
+          <span className="badge badge-neutral">Solo admin</span>
+          <button type="button" className="btn btn-primary" onClick={abrirNuevo}>
+            <IconPlus className="icon-sm" aria-hidden="true" />
             Nuevo usuario
           </button>
         </div>
       </header>
 
-      <div className="users-summary">
-        <span>Total <strong>{resumen.total}</strong></span>
-        <span>Activos <strong>{resumen.activos}</strong></span>
-        <span>Inactivos <strong>{resumen.inactivos}</strong></span>
+      <div className="stat-strip">
+        <span className="stat-chip"><strong>{resumen.total}</strong> total</span>
+        <span className="stat-chip"><strong>{resumen.activos}</strong> activos</span>
+        <span className={`stat-chip ${resumen.inactivos > 0 ? "is-warning" : ""}`}>
+          <strong>{resumen.inactivos}</strong> inactivos
+        </span>
       </div>
 
-      <div className="users-card">
-        {usuarios.length === 0 ? (
-          <div className="empty-state compact">
-            <h3>No hay usuarios todavía</h3>
-            <p className="muted">Crea el primer usuario para dar acceso al sistema.</p>
-          </div>
-        ) : (
-          <div className="users-scroll">
-            <table className="users-table">
-              <thead>
-                <tr>
-                  <th>Usuario</th>
-                  <th>Email</th>
-                  <th>Rol</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usuarios.map((u) => {
-                  const esYo = u.id === usuario?.id;
-                  return (
-                    <tr key={u.id}>
-                      <td>
-                        <div className="user-cell">
-                          <span className="user-avatar" aria-hidden="true">
-                            {iniciales(u.nombre)}
-                          </span>
-                          <div className="user-name">
-                            <strong>{u.nombre}</strong>
-                            {esYo && <span className="user-you">Tú</span>}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="user-email">{u.email}</td>
-                      <td>
-                        <select
-                          className="user-role-select"
-                          value={u.rol}
-                          onChange={(e) => cambiarRol(u, e.target.value)}
-                          disabled={esYo || busyId === u.id}
+      {usuarios.length === 0 ? (
+        <div className="empty-state">
+          <IconUsuarios className="icon-lg" aria-hidden="true" />
+          <h3 className="empty-state-title">No hay usuarios todavía</h3>
+          <p className="empty-state-message">
+            Crea el primer usuario para dar acceso al sistema.
+          </p>
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table className="table users-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map((u) => {
+                const esYo = u.id === usuario?.id;
+                return (
+                  <tr key={u.id}>
+                    <td>
+                      <div className="cell-user">
+                        <span className="avatar" aria-hidden="true">
+                          {iniciales(u.nombre)}
+                        </span>
+                        <span className="cell-user-label">
+                          <strong>{u.nombre}</strong>
+                          {esYo && <span className="badge badge-info">Tú</span>}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="text-muted">{u.email}</td>
+                    <td>
+                      <select
+                        className="select role-select"
+                        value={u.rol}
+                        onChange={(e) => cambiarRol(u, e.target.value)}
+                        disabled={esYo || busyId === u.id}
+                        title={
+                          esYo
+                            ? "No puedes cambiar tu propio rol"
+                            : `Cambiar rol de ${u.nombre}`
+                        }
+                        aria-label={`Rol de ${u.nombre}`}
+                      >
+                        {ROLES.map((r) => (
+                          <option key={r.valor} value={r.valor}>
+                            {r.etiqueta}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <div className="status-cell">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={u.activo}
+                          aria-label={`${u.activo ? "Desactivar" : "Activar"} a ${u.nombre}`}
+                          className={`switch ${u.activo ? "is-on" : ""}`}
+                          onClick={() => pedirCambioEstado(u)}
+                          disabled={esYo}
                           title={
                             esYo
-                              ? "No puedes cambiar tu propio rol"
-                              : `Cambiar rol de ${u.nombre}`
+                              ? "No puedes desactivar tu propia cuenta"
+                              : `${u.activo ? "Desactivar" : "Activar"} a ${u.nombre}`
                           }
-                          aria-label={`Rol de ${u.nombre}`}
-                        >
-                          {ROLES.map((r) => (
-                            <option key={r.valor} value={r.valor}>
-                              {r.etiqueta}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <div className="user-status">
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={u.activo}
-                            aria-label={`${u.activo ? "Desactivar" : "Activar"} a ${u.nombre}`}
-                            className={`status-switch ${u.activo ? "on" : ""}`}
-                            onClick={() => pedirCambioEstado(u)}
-                            disabled={esYo}
-                            title={
-                              esYo
-                                ? "No puedes desactivar tu propia cuenta"
-                                : `${u.activo ? "Desactivar" : "Activar"} a ${u.nombre}`
-                            }
-                          >
-                            <span className="status-switch-dot" />
-                          </button>
-                          <span className={`status-text ${u.activo ? "on" : "off"}`}>
-                            {u.activo ? "Activo" : "Inactivo"}
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                        />
+                        <span className={`status-label ${u.activo ? "is-on" : ""}`}>
+                          {u.activo ? "Activo" : "Inactivo"}
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {nuevoAbierto && (
         <Modal titulo="Nuevo usuario" onClose={cerrarNuevo}>
-          <form className="form-grid user-form" onSubmit={guardarNuevo}>
-            <label>
-              Nombre
+          <form className="form-grid" onSubmit={guardarNuevo}>
+            <label className="field">
+              <span className="label">Nombre</span>
               <input
+                className="input"
                 value={form.nombre}
                 onChange={(e) => setCampo("nombre", e.target.value)}
                 maxLength={100}
@@ -318,9 +316,10 @@ export default function Usuarios() {
                 required
               />
             </label>
-            <label>
-              Email
+            <label className="field">
+              <span className="label">Email</span>
               <input
+                className="input"
                 type="email"
                 value={form.email}
                 onChange={(e) => setCampo("email", e.target.value)}
@@ -328,9 +327,10 @@ export default function Usuarios() {
                 required
               />
             </label>
-            <label>
-              Contraseña
+            <label className="field">
+              <span className="label">Contraseña</span>
               <input
+                className="input"
                 type="password"
                 value={form.password}
                 onChange={(e) => setCampo("password", e.target.value)}
@@ -339,9 +339,10 @@ export default function Usuarios() {
                 required
               />
             </label>
-            <label>
-              Rol
+            <label className="field">
+              <span className="label">Rol</span>
               <select
+                className="select"
                 value={form.rol}
                 onChange={(e) => setCampo("rol", e.target.value)}
                 required
@@ -354,11 +355,11 @@ export default function Usuarios() {
               </select>
             </label>
             {errorForm && <p className="field-error">{errorForm}</p>}
-            <div className="modal-foot">
-              <button type="button" className="btn-ghost" onClick={cerrarNuevo} disabled={guardando}>
+            <div className="modal-actions">
+              <button type="button" className="btn btn-ghost" onClick={cerrarNuevo} disabled={guardando}>
                 Cancelar
               </button>
-              <button className="btn-primary" disabled={guardando}>
+              <button className="btn btn-primary" disabled={guardando}>
                 {guardando ? "Creando..." : "Crear usuario"}
               </button>
             </div>

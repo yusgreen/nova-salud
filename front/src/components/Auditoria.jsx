@@ -21,6 +21,24 @@ const ETIQUETA_ACCION = {
   STOCK_ENTRY: "Recibió mercadería",
 };
 
+const TONO_ACCION = {
+  LOGIN: "badge-success",
+  LOGIN_FALLIDO: "badge-danger",
+  REGISTER: "badge-info",
+  SALE_CREATE: "badge-success",
+  SALE_VOID: "badge-warning",
+  PRODUCT_CREATE: "badge-info",
+  PRODUCT_UPDATE: "badge-warning",
+  PRODUCT_DELETE: "badge-danger",
+  CONFIG_UPDATE: "badge-warning",
+  PROFILE_UPDATE: "badge-info",
+  PASSWORD_CHANGE: "badge-info",
+  USER_CREATE: "badge-info",
+  USER_UPDATE: "badge-warning",
+  USER_STATUS: "badge-warning",
+  STOCK_ENTRY: "badge-success",
+};
+
 const ETIQUETA_CAMPO = {
   email: "Correo",
   rol: "Rol",
@@ -154,32 +172,46 @@ export default function Auditoria() {
   if (error) return <p className="status error">{error}</p>;
 
   return (
-    <div>
-      <div className="aud-toolbar">
-        <label className="muted small">
+    <div className="audit">
+      <header className="page-head">
+        <div>
+          <p className="kicker">Auditoría</p>
+          <h2 className="page-title">Registro de actividad</h2>
+          <p className="page-sub">Historial de acciones importantes del sistema.</p>
+        </div>
+      </header>
+
+      <div className="audit-toolbar">
+        <label className="filter-field">
           Filtrar por acción
-          <select value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+          <select
+            className="select"
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+          >
             {ACCIONES.map((a) => (
               <option key={a.v} value={a.v}>{a.l}</option>
             ))}
           </select>
         </label>
-        <span className="muted small">{vistos.length} registro(s)</span>
+        <span className="text-muted small">{vistos.length} registro(s)</span>
       </div>
 
       {vistos.length === 0 ? (
-        <div className="empty-state compact">
+        <div className="empty-state">
           <IlustracionAuditoriaVacia className="empty-art" />
-          <h3>{logs.length === 0 ? "Todavía no hay movimientos" : "Sin registros para este filtro"}</h3>
-          <p className="muted">
+          <h3 className="empty-state-title">
+            {logs.length === 0 ? "Todavía no hay movimientos" : "Sin registros para este filtro"}
+          </h3>
+          <p className="empty-state-message">
             {logs.length === 0
               ? "Las acciones importantes del sistema se van a registrar aquí."
               : "Prueba con otra acción o vuelve a “Todas”."}
           </p>
         </div>
       ) : (
-        <div className="aud-scroll">
-          <table className="aud-table">
+        <div className="table-wrap">
+          <table className="table audit-table">
             <thead>
               <tr>
                 <th>Fecha</th>
@@ -193,27 +225,31 @@ export default function Auditoria() {
             </thead>
             <tbody>
               {vistos.map((l) => (
-                <tr key={l.id} className={l.accion === "LOGIN_FALLIDO" ? "aud-danger" : ""}>
+                <tr key={l.id} className={l.accion === "LOGIN_FALLIDO" ? "is-danger" : ""}>
                   <td className="nowrap">{fecha(l.fecha)}</td>
                   <td className="nowrap">{l.usuario?.nombre ?? "—"}</td>
                   <td className="nowrap">
-                    <span className="chip-rol">{l.usuario?.rol ?? "—"}</span>
+                    <span className="badge badge-neutral">{l.usuario?.rol ?? "—"}</span>
                   </td>
                   <td className="nowrap">
-                    <span className={`aud-tag tag-${l.accion}`}>{etiquetaAccion(l.accion)}</span>
+                    <span className={`badge ${TONO_ACCION[l.accion] || "badge-neutral"}`}>
+                      {etiquetaAccion(l.accion)}
+                    </span>
                   </td>
                   <td className="nowrap">
                     {l.entidad}
                     {l.entidadId ? ` #${l.entidadId}` : ""}
                   </td>
-                  <td className="aud-detalle">
-                    <div className="aud-detalle-list">
-                      {paresDetalle(l.detalle).length
-                        ? paresDetalle(l.detalle).map((t, i) => <span key={i}>{t}</span>)
-                        : "—"}
-                    </div>
+                  <td className="audit-detail">
+                    {paresDetalle(l.detalle).length ? (
+                      <div className="audit-detail-list">
+                        {paresDetalle(l.detalle).map((t, i) => <span key={i}>{t}</span>)}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
                   </td>
-                  <td className="nowrap muted small">{l.ip ?? "—"}</td>
+                  <td className="nowrap text-muted small">{l.ip ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

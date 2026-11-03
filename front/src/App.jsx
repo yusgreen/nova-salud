@@ -15,15 +15,19 @@ import Usuarios from "./components/Usuarios";
 import Toast from "./components/Toast";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import { IconInventario, IconCaja, IconVentas, IconAuditoria, IconPanel, IconLogo, IconConfiguracion, IconUsuarios, IconCierreCaja } from "./components/Icons";
+import {
+  IconInventario, IconCaja, IconVentas, IconAuditoria,
+  IconPanel, IconLogo, IconConfiguracion, IconUsuarios, IconCierreCaja
+} from "./components/Icons";
 import Dashboard from "./components/Dashboard";
-// Un solo lugar para la navegación. icon = componente SVG (hereda currentColor).
+
 const NAV = [
-  { id: "dashboard",  label: "Panel",      icon: IconPanel,      visible: () => true },  { id: "inventario", label: "Inventario", icon: IconInventario, visible: () => true },
-  { id: "caja",       label: "Caja",       icon: IconCaja,       visible: () => true },
-  { id: "ventas",     label: "Ventas",     icon: IconVentas,     visible: (g) => g },
-  { id: "cierre",     label: "Cierre de caja", icon: IconCierreCaja, visible: () => true },
-  { id: "auditoria",  label: "Auditoría",  icon: IconAuditoria,  visible: (g) => g },
+  { id: "dashboard", label: "Panel", icon: IconPanel, visible: () => true },
+  { id: "inventario", label: "Inventario", icon: IconInventario, visible: () => true },
+  { id: "caja", label: "Caja", icon: IconCaja, visible: () => true },
+  { id: "ventas", label: "Ventas", icon: IconVentas, visible: (g) => g },
+  { id: "cierre", label: "Cierre de caja", icon: IconCierreCaja, visible: () => true },
+  { id: "auditoria", label: "Auditoría", icon: IconAuditoria, visible: (g) => g },
   { id: "configuracion", label: "Configuración", icon: IconConfiguracion, visible: () => true, adminOnly: true },
   { id: "usuarios", label: "Usuarios", icon: IconUsuarios, visible: () => true, adminOnly: true },
 ];
@@ -32,16 +36,15 @@ export default function App() {
   const { usuario, loading, puedeGestionarInventario, isAdmin } = useAuth();
   const { config } = useConfig();
   const [view, setView] = useState("login");
-  const [tab, setTab] = useState("inventario");
+  const [tab, setTab] = useState("dashboard");
   const [menuAbierto, setMenuAbierto] = useState(false);
 
-  useEffect(() => { setTab("inventario"); setMenuAbierto(false); }, [usuario?.id]);
+  useEffect(() => { setTab("dashboard"); setMenuAbierto(false); }, [usuario?.id]);
 
-  // Si la sesión vence, AuthContext limpia el usuario y aquí aseguramos el Login.
   useEffect(() => {
     function onSesionExpirada() {
       setView("login");
-      setTab("inventario");
+      setTab("dashboard");
       setMenuAbierto(false);
     }
     window.addEventListener("nova:session-expired", onSesionExpirada);
@@ -66,9 +69,9 @@ export default function App() {
       <ProductProvider>
         <SalesProvider>
           <div className="app-shell">
-            {menuAbierto && <div className="drawer-overlay" onClick={() => setMenuAbierto(false)} />}
+            {menuAbierto && <div className="drawer-overlay" onClick={() => setMenuAbierto(false)} aria-hidden="true" />}
 
-            <aside className={`sidebar ${menuAbierto ? "open" : ""}`}>
+            <aside className={`sidebar ${menuAbierto ? "open" : ""}`} aria-label="Navegación principal">
               <div className="sidebar-brand">
                 <IconLogo className="sidebar-logo" aria-hidden="true" />
                 <span className="sidebar-name">{config.nombreNegocio}</span>
@@ -91,7 +94,9 @@ export default function App() {
 
             <div className="app-main">
               <Topbar onMenu={() => setMenuAbierto(true)} />
-              <main className="content" key={tab}>                {tab === "dashboard" && <Dashboard />}                {tab === "inventario" && <Inventario />}
+              <main className="content" key={tab} role="main">
+                {tab === "dashboard" && <Dashboard />}
+                {tab === "inventario" && <Inventario />}
                 {tab === "caja" && <Caja />}
                 {tab === "ventas" && puedeGestionarInventario && <Ventas />}
                 {tab === "cierre" && <CierreCaja />}

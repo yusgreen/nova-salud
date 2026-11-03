@@ -12,29 +12,102 @@ import {
 } from "../services/vencimientos";
 import { useCountUp } from "../hooks/useCountUp";
 import { SkeletonGrid } from "./Skeleton";
-import { IlustracionPulso } from "./Illustrations";
+import { IconAlerta } from "./Icons";
 
-function ListaVencimientos({ datos }) {
-  if (!datos || datos.cercanos.length === 0) return null;
+const ETIQUETA_METODO = {
+  EFECTIVO: "Efectivo",
+  TARJETA: "Tarjeta",
+  YAPE_PLIN: "Yape/Plin",
+};
+
+function PanelAlertas({ criticos = [], vencimientos }) {
+  const tieneCriticos = criticos.length > 0;
+  const tieneVencimientos = Boolean(vencimientos && vencimientos.total > 0);
+  if (!tieneCriticos && !tieneVencimientos) return null;
+
+  const totalAvisos = criticos.length + (vencimientos?.total || 0);
+
   return (
-    <div className="dash-list">
-      <p className="muted small">
-        Próximos vencimientos · {datos.porVencer} por vencer · {datos.vencidos} vencidos
-      </p>
-      <ul>
-        {datos.cercanos.map((p) => (
-          <li key={p.id}>
-            <span className="dash-li-nombre">{p.nombre}</span>{" "}
-            <span className={`venc-chip ${p.estado}`}>
-              {p.estado === "vencido" ? "Vencido" : "Vence pronto"}
-            </span>{" "}
-            <span className="muted small">
-              {p.dias < 0 ? `hace ${Math.abs(p.dias)} d` : `en ${p.dias} d`} · {formatearFechaVencimiento(p.fechaVencimiento)}
-            </span>
+    <section className="alert-panel" aria-labelledby="panel-alertas">
+      <div className="alert-panel-head">
+        <h3 className="alert-panel-title" id="panel-alertas">
+          <IconAlerta className="icon-sm" aria-hidden="true" />
+          Requieren atención
+        </h3>
+        <span className="badge badge-warning">
+          {totalAvisos} aviso{totalAvisos === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="alert-panel-grid">
+        {tieneCriticos && (
+          <div className="alert-block">
+            <div className="alert-block-head">
+              <span className="alert-block-title">Stock en o bajo mínimo</span>
+              <span className="badge badge-warning">{criticos.length}</span>
+            </div>
+            <ul className="alert-list">
+              {criticos.map((p) => (
+                <li key={p.id}>
+                  <span className="alert-name">{p.nombre}</span>
+                  <span className="alert-meta font-mono">
+                    {p.stock} / mín {p.stockMinimo}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {tieneVencimientos && (
+          <div className="alert-block">
+            <div className="alert-block-head">
+              <span className="alert-block-title">Vencimientos</span>
+              <span className="alert-block-badges">
+                {vencimientos.porVencer > 0 && (
+                  <span className="badge badge-warning">{vencimientos.porVencer} por vencer</span>
+                )}
+                {vencimientos.vencidos > 0 && (
+                  <span className="badge badge-danger">{vencimientos.vencidos} vencidos</span>
+                )}
+              </span>
+            </div>
+            <ul className="alert-list">
+              {vencimientos.cercanos.map((p) => (
+                <li key={p.id}>
+                  <span className="alert-name">{p.nombre}</span>
+                  <span className={`badge ${p.estado === "vencido" ? "badge-danger" : "badge-warning"}`}>
+                    {p.estado === "vencido" ? "Vencido" : "Vence pronto"}
+                  </span>
+                  <span className="alert-meta">
+                    {p.dias < 0 ? `Hace ${Math.abs(p.dias)} d` : p.dias === 0 ? "Hoy" : `En ${p.dias} d`}
+                    {" · "}
+                    {formatearFechaVencimiento(p.fechaVencimiento)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function RecaudoPorMetodo({ datos, money }) {
+  if (!datos || datos.length === 0) return null;
+  return (
+    <section className="card methods-card">
+      <div className="card-header">
+        <h3 className="card-title">Recaudado por método</h3>
+      </div>
+      <ul className="methods-list">
+        {datos.map(({ metodo, total }) => (
+          <li key={metodo}>
+            <span className="method-name">{ETIQUETA_METODO[metodo] || metodo}</span>
+            <strong className="method-total font-mono">{money(total)}</strong>
           </li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
 
@@ -94,7 +167,7 @@ export default function Dashboard() {
       (p) => p.activo !== false && p.stock <= p.stockMinimo
     );
 
-    // Vencimientos: ignoro productos sin fecha o con fecha invǭlida.
+    // Vencimientos: ignoro productos sin fecha o con fecha inválida.
     const vencimientos = (productos || [])
       .filter((p) => p.activo !== false)
       .map((p) => ({
@@ -146,121 +219,76 @@ export default function Dashboard() {
   const m = metricas;
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
-  const hero = (
-    <div className="dash-hero">
+  const encabezado = (
+    <header className="dashboard-head">
       <div>
-        <p className="dash-hero-kicker">Panel de control</p>
-        <h2>{saludo}, {usuario?.nombre?.split(" ")[0]}</h2>
-        <p className="muted small">{config.nombreNegocio} · Resumen de hoy</p>
+        <p className="kicker">Panel de control</p>
+        <h2 className="dashboard-title">{saludo}, {usuario?.nombre?.split(" ")[0]}</h2>
+        <p className="dashboard-subtitle">{config.nombreNegocio} · Resumen de hoy</p>
       </div>
-      <IlustracionPulso className="dash-hero-art" />
-    </div>
+    </header>
   );
 
   if (!puedeGestionarInventario) {
     return (
-      <div className="dash">
-        {hero}
-        <p className="muted small">Tu turno de hoy · {usuario?.nombre}</p>
-        <div className="dash-grid">
-          <div className="dash-card"><span className="dash-num">{nVentas}</span><span className="dash-label">Ventas hoy</span></div>
-          <div className="dash-card"><span className="dash-num">{nUnidades}</span><span className="dash-label">Unidades</span></div>
-          <div className="dash-card"><span className="dash-num">{money(nTotal)}</span><span className="dash-label">Recaudado</span></div>
-          <div className="dash-card"><span className="dash-num">{m.ventasHoy ? money(nTicket) : "—"}</span><span className="dash-label">Ticket promedio</span></div>
-          <div className={`dash-card ${m.vencimientos.total ? "dash-alert" : ""}`}>
-            <span className="dash-num">{m.vencimientos.total}</span>
-            <span className="dash-label">Por vencer / vencidos</span>
-          </div>
+      <div className="dashboard">
+        {encabezado}
+        <PanelAlertas vencimientos={m.vencimientos} />
+        <div className="kpi-grid">
+          <article className="kpi">
+            <span className="kpi-label">Ventas hoy</span>
+            <strong className="kpi-value">{nVentas}</strong>
+            <span className="kpi-hint">{usuario?.nombre}</span>
+          </article>
+          <article className="kpi">
+            <span className="kpi-label">Unidades</span>
+            <strong className="kpi-value">{nUnidades}</strong>
+            <span className="kpi-hint">vendidas hoy</span>
+          </article>
+          <article className="kpi">
+            <span className="kpi-label">Recaudado</span>
+            <strong className="kpi-value font-mono">{money(nTotal)}</strong>
+            <span className="kpi-hint">en tu turno</span>
+          </article>
+          <article className="kpi">
+            <span className="kpi-label">Ticket promedio</span>
+            <strong className="kpi-value font-mono">{m.ventasHoy ? money(nTicket) : "—"}</strong>
+            <span className="kpi-hint">{m.ventasHoy ? "por venta" : "sin ventas"}</span>
+          </article>
         </div>
-        {m.porMetodo.length > 0 && (
-          <div className="dash-metodos">
-            <p className="muted small">Recaudado por método</p>
-            <ul>
-              {m.porMetodo.map(({ metodo, total }) => (
-                <li key={metodo}>
-                  <span>
-                    {metodo === "TARJETA"
-                      ? "Tarjeta"
-                      : metodo === "YAPE_PLIN"
-                        ? "Yape/Plin"
-                        : "Efectivo"}
-                  </span>
-                  <strong>{money(total)}</strong>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <ListaVencimientos datos={m.vencimientos} />
+        <RecaudoPorMetodo datos={m.porMetodo} money={money} />
       </div>
     );
   }
+
   return (
-    <div className="dash">
-      {hero}
-      <div className="dash-grid">
-        <div className="dash-card">
-          <span className="dash-num">{m.ventasHoy}</span>
-          <span className="dash-label">Ventas de hoy</span>
-        </div>
-        <div className="dash-card">
-          <span className="dash-num">{money(m.totalHoy)}</span>
-          <span className="dash-label">Recaudado hoy</span>
-        </div>
-        <div className="dash-card">
-          <span className="dash-num">{m.ventasHoy ? money(m.ticketPromedio) : "—"}</span>
-          <span className="dash-label">Ticket promedio</span>
-        </div>
-        <div className="dash-card">
-          <span className="dash-num">{m.unidadesHoy}</span>
-          <span className="dash-label">Unidades vendidas</span>
-        </div>
-        <div className="dash-card dash-wide">
-          <span className="dash-num dash-num-sm">{m.topProducto ?? "Sin ventas hoy"}</span>
-          <span className="dash-label">Más vendido {m.topProducto ? `· ${m.topCant} u.` : ""}</span>
-        </div>
-        <div className={`dash-card ${m.criticos.length ? "dash-alert" : ""}`}>
-          <span className="dash-num">{m.criticos.length}</span>
-          <span className="dash-label">Requieren reposición</span>
-        </div>
-        <div className={`dash-card ${m.vencimientos.total ? "dash-alert" : ""}`}>
-          <span className="dash-num">{m.vencimientos.total}</span>
-          <span className="dash-label">Por vencer / vencidos</span>
-        </div>
+    <div className="dashboard">
+      {encabezado}
+      <PanelAlertas criticos={m.criticos} vencimientos={m.vencimientos} />
+      <div className="kpi-grid">
+        <article className="kpi">
+          <span className="kpi-label">Ventas de hoy</span>
+          <strong className="kpi-value">{m.ventasHoy}</strong>
+        </article>
+        <article className="kpi">
+          <span className="kpi-label">Recaudado hoy</span>
+          <strong className="kpi-value font-mono">{money(m.totalHoy)}</strong>
+        </article>
+        <article className="kpi">
+          <span className="kpi-label">Ticket promedio</span>
+          <strong className="kpi-value font-mono">{m.ventasHoy ? money(m.ticketPromedio) : "—"}</strong>
+        </article>
+        <article className="kpi">
+          <span className="kpi-label">Unidades vendidas</span>
+          <strong className="kpi-value">{m.unidadesHoy}</strong>
+        </article>
+        <article className="kpi is-wide">
+          <span className="kpi-label">Más vendido hoy</span>
+          <strong className="kpi-value is-text">{m.topProducto ?? "Sin ventas hoy"}</strong>
+          {m.topProducto && <span className="kpi-hint">{m.topCant} unidades</span>}
+        </article>
       </div>
-
-      {m.porMetodo.length > 0 && (
-        <div className="dash-metodos">
-          <p className="muted small">Recaudado por método</p>
-          <ul>
-            {m.porMetodo.map(({ metodo, total }) => (
-              <li key={metodo}>
-                <span>
-                  {metodo === "TARJETA"
-                    ? "Tarjeta"
-                    : metodo === "YAPE_PLIN"
-                      ? "Yape/Plin"
-                      : "Efectivo"}
-                </span>
-                <strong>{money(total)}</strong>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {m.criticos.length > 0 && (
-        <div className="dash-list">
-          <p className="muted small">Stock en o bajo mínimo:</p>
-          <ul>
-            {m.criticos.map((p) => (
-              <li key={p.id}><span className="dash-li-nombre">{p.nombre}</span> <span className="muted small">stock {p.stock} / mín {p.stockMinimo}</span></li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <ListaVencimientos datos={m.vencimientos} />
+      <RecaudoPorMetodo datos={m.porMetodo} money={money} />
     </div>
   );
 }

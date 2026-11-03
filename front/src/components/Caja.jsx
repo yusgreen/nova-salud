@@ -49,6 +49,7 @@ export default function Caja() {
     montoRecibido !== "" &&
     montoValido &&
     montoRecibidoNumero < total;
+  const vueltoPositivo = vuelto !== null && vuelto > 0;
 
   const filtrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -100,33 +101,36 @@ export default function Caja() {
   const agotados = productosActivos.filter((p) => p.stock <= 0).length;
 
   return (
-    <div className="caja-page">
-      <div className="caja-layout">
-        <section className="caja-panel productos-panel">
-          <div className="caja-head">
+    <div className="pos">
+      <header className="pos-header">
+        <div>
+          <p className="kicker">Punto de venta</p>
+          <h2 className="pos-title">Caja</h2>
+        </div>
+        <div className="stat-strip">
+          <span className="stat-chip"><strong>{disponibles}</strong> disponibles</span>
+          <span className={`stat-chip ${stockBajo > 0 ? "is-warning" : ""}`}>
+            <strong>{stockBajo}</strong> stock bajo
+          </span>
+          {agotados > 0 && (
+            <span className="stat-chip is-danger"><strong>{agotados}</strong> agotados</span>
+          )}
+        </div>
+      </header>
+
+      <div className="pos-grid">
+        <section className="card pos-catalog" aria-label="Catálogo de productos">
+          <div className="pos-panel-head">
             <div>
-              <p className="caja-kicker">Punto de venta</p>
-              <h2>Atención de venta</h2>
-            </div>
-            <div className="caja-stats">
-              <span className="caja-stat">
-                <b>{disponibles}</b> disponibles
-              </span>
-              <span className={`caja-stat ${stockBajo > 0 ? "warn" : ""}`}>
-                <b>{stockBajo}</b> stock bajo
-              </span>
-              {agotados > 0 && (
-                <span className="caja-stat danger">
-                  <b>{agotados}</b> agotados
-                </span>
-              )}
+              <h3 className="pos-panel-title">Productos</h3>
+              <p className="text-muted">{filtrados.length} resultado{filtrados.length === 1 ? "" : "s"}</p>
             </div>
           </div>
 
-          <div className="search-wrap">
-            <IconSearch className="search-icon" aria-hidden="true" />
+          <div className="pos-search">
+            <IconSearch className="pos-search-icon" aria-hidden="true" />
             <input
-              className="search"
+              className="input"
               placeholder="Buscar por nombre, código o descripción…"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
@@ -134,119 +138,126 @@ export default function Caja() {
             />
             {busqueda && (
               <button
-                className="search-clear"
+                className="pos-search-clear"
                 onClick={() => setBusqueda("")}
                 aria-label="Limpiar búsqueda"
+                type="button"
               >
                 ✕
               </button>
             )}
           </div>
 
-          {loading && <SkeletonStack count={5} variant="row" />}
-          {error && <p className="status error">{error}</p>}
+          {loading && <div className="pos-list"><SkeletonStack count={5} variant="row" /></div>}
+          {error && <p className="status error pos-error">{error}</p>}
 
           {!loading && !error && (
-            <ul className="producto-lista">
-              {filtrados.map((p) => {
-                const enVenta = lineas.find((l) => l.productoId === p.id);
-                const agotado = p.stock <= 0;
-                const limiteAlcanzado = enVenta && enVenta.cantidad >= p.stock;
-                const bajo = !agotado && p.stock <= (p.stockMinimo ?? 0);
-                return (
-                  <li key={p.id} className={`producto-row ${agotado ? "agotado" : ""}`}>
-                    <span className="producto-avatar" aria-hidden="true">
-                      {iniciales(p.nombre)}
-                    </span>
-                    <div className="producto-info">
-                      <span className="producto-nombre">{p.nombre}</span>
-                      <div className="producto-meta">
-                        <span className="chip chip-precio">{formatearMoneda(p.precio, config.moneda)}</span>
-                        <span className={`chip chip-stock ${agotado ? "out" : bajo ? "low" : ""}`}>
-                          {agotado ? "Sin stock" : `${p.stock} en stock`}
-                        </span>
-                        {enVenta && (
-                          <span className="chip chip-ticket">En ticket: {enVenta.cantidad}</span>
-                        )}
+            filtrados.length === 0 ? (
+              <div className="pos-empty">
+                <IconSearch className="icon-lg" aria-hidden="true" />
+                <strong>Sin resultados</strong>
+                <span>{busqueda ? `No hay coincidencias para “${busqueda}”.` : "No hay productos disponibles."}</span>
+              </div>
+            ) : (
+              <ul className="pos-list">
+                {filtrados.map((p) => {
+                  const enVenta = lineas.find((l) => l.productoId === p.id);
+                  const agotado = p.stock <= 0;
+                  const limiteAlcanzado = enVenta && enVenta.cantidad >= p.stock;
+                  const bajo = !agotado && p.stock <= (p.stockMinimo ?? 0);
+                  const stockBadge = agotado ? "badge-danger" : bajo ? "badge-warning" : "badge-neutral";
+                  const deshabilitado = agotado || limiteAlcanzado;
+                  return (
+                    <li key={p.id} className={`pos-item ${agotado ? "is-out" : ""}`}>
+                      <span className="pos-avatar" aria-hidden="true">{iniciales(p.nombre)}</span>
+                      <div className="pos-item-info">
+                        <span className="pos-item-name">{p.nombre}</span>
+                        <div className="pos-item-meta">
+                          <span className="badge badge-neutral font-mono">
+                            {formatearMoneda(p.precio, config.moneda)}
+                          </span>
+                          <span className={`badge ${stockBadge}`}>
+                            {agotado ? "Sin stock" : `${p.stock} en stock`}
+                          </span>
+                          {enVenta && (
+                            <span className="badge badge-info">En ticket: {enVenta.cantidad}</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <button
-                      className="btn-add"
-                      disabled={agotado || limiteAlcanzado}
-                      onClick={() => agregar(p)}
-                      title={
-                        agotado
-                          ? "Sin stock"
-                          : limiteAlcanzado
-                            ? "Límite de stock alcanzado"
-                            : "Agregar a la venta"
-                      }
-                    >
-                      {agotado ? (
-                        "Agotado"
-                      ) : limiteAlcanzado ? (
-                        "Máximo"
-                      ) : (
-                        <>
-                          <IconPlus className="btn-add-icon" aria-hidden="true" />
-                          Agregar
-                        </>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-              {filtrados.length === 0 && (
-                <li className="producto-vacio">
-                  <IconSearch className="empty-icon" aria-hidden="true" />
-                  <span>Sin resultados para “{busqueda}”.</span>
-                </li>
-              )}
-            </ul>
+                      <button
+                        className={`btn btn-sm pos-add ${deshabilitado ? "btn-secondary" : "btn-primary"}`}
+                        disabled={deshabilitado}
+                        onClick={() => agregar(p)}
+                        title={
+                          agotado
+                            ? "Sin stock"
+                            : limiteAlcanzado
+                              ? "Límite de stock alcanzado"
+                              : "Agregar a la venta"
+                        }
+                      >
+                        {agotado ? (
+                          "Agotado"
+                        ) : limiteAlcanzado ? (
+                          "Máximo"
+                        ) : (
+                          <>
+                            <IconPlus className="icon-sm" aria-hidden="true" />
+                            Agregar
+                          </>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )
           )}
         </section>
 
-        <aside className="caja-panel ticket-panel">
-          <div className="caja-head">
+        <aside className="card pos-ticket" aria-label="Ticket actual">
+          <div className="pos-panel-head">
             <div>
-              <p className="caja-kicker">Cobro</p>
-              <h2>Ticket actual</h2>
+              <p className="kicker">Cobro</p>
+              <h3 className="pos-panel-title">Ticket actual</h3>
             </div>
-            <span className="ticket-count">{unidades} u.</span>
+            <span className="badge badge-neutral">{unidades} u.</span>
           </div>
 
-          <div className="caja-mensajes" aria-live="polite">
+          <div className="pos-messages" aria-live="polite">
             {msgExito && <p className="status ok">{msgExito}</p>}
             {msgError && <p className="status error">{msgError}</p>}
           </div>
 
           {lineas.length === 0 ? (
-            <div className="ticket-empty">
-              <IconCaja className="empty-icon" aria-hidden="true" />
+            <div className="pos-empty">
+              <IconCaja className="icon-lg" aria-hidden="true" />
               <strong>El ticket está vacío</strong>
               <span>Agrega productos del catálogo para comenzar la venta.</span>
             </div>
           ) : (
-            <ul className="linea-lista">
+            <ul className="pos-lines">
               {lineas.map((l) => (
-                <li key={l.productoId} className="linea-row">
-                  <div className="linea-info">
-                    <span className="producto-nombre">{l.nombre}</span>
-                    <span className="muted small">{formatearMoneda(l.precio, config.moneda)} c/u</span>
+                <li key={l.productoId} className="pos-line">
+                  <div className="pos-line-info">
+                    <span className="pos-line-name">{l.nombre}</span>
+                    <span className="text-muted small font-mono">
+                      {formatearMoneda(l.precio, config.moneda)} c/u
+                    </span>
                   </div>
-                  <div className="linea-controls">
+                  <div className="pos-line-controls">
                     <button
-                      className="btn-step"
+                      className="btn btn-secondary btn-icon"
                       onClick={() => cambiarCantidad(l.productoId, -1)}
                       aria-label={`Quitar una unidad de ${l.nombre}`}
                     >
                       −
                     </button>
-                    <span className="linea-cant" aria-label={`Cantidad: ${l.cantidad}`}>
+                    <span className="pos-line-qty" aria-label={`Cantidad: ${l.cantidad}`}>
                       {l.cantidad}
                     </span>
                     <button
-                      className="btn-step"
+                      className="btn btn-secondary btn-icon"
                       onClick={() => cambiarCantidad(l.productoId, +1)}
                       disabled={l.cantidad >= l.stockDisponible}
                       title={l.cantidad >= l.stockDisponible ? "Límite de stock" : ""}
@@ -255,15 +266,15 @@ export default function Caja() {
                       +
                     </button>
                     <button
-                      className="btn-quitar"
+                      className="btn btn-ghost btn-icon pos-remove"
                       onClick={() => quitar(l.productoId)}
                       title="Quitar línea"
                       aria-label={`Quitar ${l.nombre} del ticket`}
                     >
-                      <IconTrash className="btn-quitar-icon" aria-hidden="true" />
+                      <IconTrash className="icon-sm" aria-hidden="true" />
                     </button>
                   </div>
-                  <div className="linea-subtotal">
+                  <div className="pos-line-total font-mono">
                     {formatearMoneda(l.precio * l.cantidad, config.moneda)}
                   </div>
                 </li>
@@ -271,27 +282,24 @@ export default function Caja() {
             </ul>
           )}
 
-          <div className="ticket-summary">
-            <div className="total-box">
+          <div className="pos-totals">
+            <div className="pos-total-row">
               <span>Total a cobrar</span>
-              <strong>{formatearMoneda(total, config.moneda)}</strong>
+              <strong className="font-mono">{formatearMoneda(total, config.moneda)}</strong>
             </div>
-            <div className="ticket-meta">
-              <span>
-                {lineas.length} producto{lineas.length === 1 ? "" : "s"}
-              </span>
-              <span>
-                {unidades} unidad{unidades === 1 ? "" : "es"}
-              </span>
+            <div className="pos-total-meta">
+              <span>{lineas.length} producto{lineas.length === 1 ? "" : "s"}</span>
+              <span>{unidades} unidad{unidades === 1 ? "" : "es"}</span>
             </div>
           </div>
 
-          <label className="nota-field">
-            <span className="nota-label-row">
+          <label className="pos-note">
+            <span className="pos-note-head">
               <span>Nota del ticket (opcional)</span>
-              <span className="nota-count">{nota.length}/250</span>
+              <span className="pos-note-count">{nota.length}/250</span>
             </span>
             <textarea
+              className="textarea"
               value={nota}
               onChange={(e) => setNota(e.target.value)}
               placeholder="Ej.: paciente alérgico a penicilina, receta N° 123…"
@@ -300,10 +308,10 @@ export default function Caja() {
             />
           </label>
 
-          <div className="caja-pago">
-            <label>
-              Método de pago
+          <div className="pos-payment">
+            <label className="label">Método de pago
               <select
+                className="select"
                 value={metodoPago}
                 onChange={(e) => setMetodoPago(e.target.value)}
                 disabled={busy}
@@ -315,10 +323,10 @@ export default function Caja() {
             </label>
 
             {metodoPago === "EFECTIVO" && (
-              <div className="caja-pago-row">
-                <label>
-                  Recibido
+              <div className="pos-payment-row">
+                <label className="label">Recibido
                   <input
+                    className="input"
                     type="number"
                     min={total}
                     step="0.01"
@@ -328,9 +336,9 @@ export default function Caja() {
                     disabled={busy}
                   />
                 </label>
-                <div className={`vuelto ${montoInsuficiente ? "insuficiente" : ""}`}>
+                <div className={`pos-change ${montoInsuficiente ? "is-danger" : vueltoPositivo ? "is-positive" : ""}`}>
                   <span>Vuelto</span>
-                  <strong>
+                  <strong className="font-mono">
                     {montoInsuficiente
                       ? "Monto insuficiente"
                       : vuelto === null
@@ -342,18 +350,20 @@ export default function Caja() {
             )}
           </div>
 
-          <button
-            className="btn-primary btn-block"
-            onClick={registrarVenta}
-            disabled={busy || lineas.length === 0 || montoInsuficiente}
-          >
-            {busy ? "Registrando…" : `Cobrar ${formatearMoneda(total, config.moneda)}`}
-          </button>
-          {lineas.length > 0 && (
-            <button className="btn-ghost btn-block" onClick={limpiar} disabled={busy}>
-              Vaciar ticket
+          <div className="pos-actions">
+            <button
+              className="btn btn-primary btn-block"
+              onClick={registrarVenta}
+              disabled={busy || lineas.length === 0 || montoInsuficiente}
+            >
+              {busy ? "Registrando…" : `Cobrar ${formatearMoneda(total, config.moneda)}`}
             </button>
-          )}
+            {lineas.length > 0 && (
+              <button className="btn btn-ghost btn-block" onClick={limpiar} disabled={busy}>
+                Vaciar ticket
+              </button>
+            )}
+          </div>
         </aside>
       </div>
 

@@ -4,6 +4,7 @@ import { useConfig } from "../context/ConfigContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { usePreferencias } from "../context/PreferenciasContext";
+import { api } from "../services/api";
 import { descargarVentasExcel } from "../services/export";
 import { formatearMoneda } from "../services/format";
 import { SkeletonStack } from "./Skeleton";
@@ -13,6 +14,12 @@ import Comprobante from "./Comprobante";
 import ConfirmDialog from "./ConfirmDialog";
 
 const FILAS_POR_DEFECTO = 10;
+
+const ETIQUETA_METODO = {
+  EFECTIVO: "Efectivo",
+  TARJETA: "Tarjeta",
+  YAPE_PLIN: "Yape/Plin",
+};
 
 function fechaLegible(iso) {
   try {
@@ -134,31 +141,55 @@ export default function Ventas() {
     }
   }
 
-  if (loading) return <SkeletonStack count={6} />;
+  if (loading) return <SkeletonStack count={6} variant="row" />;
   if (error) return <p className="status error">{error}</p>;
 
   if (ventas.length === 0) return (
     <div className="empty-state">
       <IlustracionVentasVacio className="empty-art" />
-      <h3>Todavía no hay ventas</h3>
-      <p className="muted">Las ventas que registres desde Caja van a aparecer aquí, con su detalle y total.</p>
+      <h3 className="empty-state-title">Todavía no hay ventas</h3>
+      <p className="empty-state-message">
+        Las ventas que registres desde Caja van a aparecer aquí, con su detalle y total.
+      </p>
     </div>
   );
 
   return (
-    <div>
-      <div className="ventas-filtros">
-        <label>
+    <div className="sales">
+      <header className="page-head">
+        <div>
+          <p className="kicker">Ventas</p>
+          <h2 className="page-title">Historial de ventas</h2>
+          <p className="page-sub">Consulta, imprime y anula tickets registrados.</p>
+        </div>
+      </header>
+
+      <div className="filter-row">
+        <label className="filter-field">
           Desde
-          <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
+          <input
+            className="input"
+            type="date"
+            value={desde}
+            onChange={(e) => setDesde(e.target.value)}
+          />
         </label>
-        <label>
+        <label className="filter-field">
           Hasta
-          <input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+          <input
+            className="input"
+            type="date"
+            value={hasta}
+            onChange={(e) => setHasta(e.target.value)}
+          />
         </label>
-        <label>
+        <label className="filter-field">
           Atendido por
-          <select value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)}>
+          <select
+            className="select"
+            value={usuarioId}
+            onChange={(e) => setUsuarioId(e.target.value)}
+          >
             <option value="">Todos</option>
             {usuarios.map((u) => (
               <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>
@@ -167,7 +198,7 @@ export default function Ventas() {
         </label>
         <button
           type="button"
-          className="btn-ghost btn-sm"
+          className="btn btn-ghost"
           onClick={limpiarFiltros}
           disabled={!hayFiltros}
         >
@@ -175,12 +206,12 @@ export default function Ventas() {
         </button>
       </div>
 
-      <div className="ventas-toolbar">
-        <span className="muted small">
+      <div className="sales-toolbar">
+        <span className="text-muted small">
           {filtradas.length} ticket(s) · página {paginaActual} de {totalPaginas}
         </span>
         <button
-          className="btn-primary btn-sm"
+          className="btn btn-secondary btn-sm"
           onClick={onExport}
           disabled={exportando || filtradas.length === 0}
         >
@@ -192,98 +223,109 @@ export default function Ventas() {
       {filtradas.length === 0 ? (
         <div className="empty-state">
           <IlustracionVentasVacio className="empty-art" />
-          <h3>Sin ventas con esos filtros</h3>
-          <p className="muted">Prueba con otro rango de fechas o cambia el usuario que atendió.</p>
-          <button className="btn-ghost" onClick={limpiarFiltros}>Limpiar filtros</button>
+          <h3 className="empty-state-title">Sin ventas con esos filtros</h3>
+          <p className="empty-state-message">
+            Prueba con otro rango de fechas o cambia el usuario que atendió.
+          </p>
+          <button className="btn btn-ghost" onClick={limpiarFiltros}>Limpiar filtros</button>
         </div>
       ) : (
         <>
-          <div className="ventas-list">
-            {visibles.map((v) => {
-              const items = v.detalles.reduce((acc, l) => acc + l.cantidad, 0);
-              const anulada = v.estado === "ANULADA";
-              return (
-                <article key={v.id} className={`venta-card ${anulada ? "venta-anulada" : ""}`}>
-                  <header className="venta-head">
-                    <div>
-                      <span className="venta-id">Ticket #{v.id}</span>
-                      <span className="muted small">{fechaLegible(v.fecha)}</span>
-                      {anulada && <span className="badge-anulada">Anulada</span>}
-                    </div>
-                    <div className="venta-meta">
-                      <span className="chip-rol">{v.atendidoPor?.nombre} — {v.atendidoPor?.rol}</span>
-                      <strong className="venta-total">{formatearMoneda(v.total, config.moneda)}</strong>
-                    </div>
-                  </header>
-
-                  {anulada && v.motivoAnulacion && (
-                    <p className="venta-motivo">
-                      Motivo: {v.motivoAnulacion}
-                      {v.anuladaPor?.nombre ? ` — por ${v.anuladaPor.nombre}` : ""}
-                    </p>
-                  )}
-
-                  {v.nota && (
-                    <p className="venta-nota">Nota: {v.nota}</p>
-                  )}
-
-                  <table className="venta-table">
-                    <thead>
-                      <tr><th>Producto</th><th className="num">Cant.</th><th className="num">P. unit.</th><th className="num">Subtotal</th></tr>
-                    </thead>
-                    <tbody>
-                      {v.detalles.map((l) => (
-                        <tr key={l.productoId}>
-                          <td>{l.producto?.nombre ?? "(producto eliminado)"}</td>
-                          <td className="num">{l.cantidad}</td>
-                          <td className="num">{formatearMoneda(l.precioUnitario, config.moneda)}</td>
-                          <td className="num">{formatearMoneda(l.cantidad * l.precioUnitario, config.moneda)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-
-                  <footer className="venta-foot">
-                    <span className="muted small">
-                      {items} unidad(es) en {v.detalles.length} línea(s)
-                      {v.metodoPago ? ` — ${v.metodoPago === "TARJETA" ? "Tarjeta" : v.metodoPago === "YAPE_PLIN" ? "Yape/Plin" : "Efectivo"}` : ""}
-                    </span>
-                    <div className="venta-foot-actions">
-                      <button
-                        type="button"
-                        className="btn-ghost btn-sm"
-                        onClick={() => setTicket(v)}
-                      >
-                        Imprimir
-                      </button>
-                      {!anulada && (isAdmin || esFarmaceutico) && (
-                        <button
-                          type="button"
-                          className="btn-ghost btn-sm btn-danger-text"
-                          onClick={() => pedirAnular(v)}
-                        >
-                          Anular
-                        </button>
-                      )}
-                    </div>
-                  </footer>
-                </article>
-              );
-            })}
+          <div className="table-wrap">
+            <table className="table sales-table">
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Fecha</th>
+                  <th>Atendido por</th>
+                  <th>Método</th>
+                  <th className="num">Unid.</th>
+                  <th className="num">Total</th>
+                  <th>Estado</th>
+                  <th className="sales-col-actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibles.map((v) => {
+                  const items = v.detalles.reduce((acc, l) => acc + l.cantidad, 0);
+                  const anulada = v.estado === "ANULADA";
+                  return (
+                    <tr key={v.id} className={anulada ? "is-void" : ""}>
+                      <td>
+                        <div className="sale-id">
+                          <span className="font-mono">#{v.id}</span>
+                          {anulada && v.motivoAnulacion && (
+                            <span className="sale-void-note" title={`Motivo: ${v.motivoAnulacion}`}>
+                              Motivo: {v.motivoAnulacion}
+                            </span>
+                          )}
+                          {v.nota && (
+                            <span className="sale-note" title={`Nota: ${v.nota}`}>Nota: {v.nota}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="nowrap">{fechaLegible(v.fecha)}</td>
+                      <td>
+                        <div className="sale-user">
+                          <span>{v.atendidoPor?.nombre || "—"}</span>
+                          {v.atendidoPor?.rol && (
+                            <span className="text-muted small">{v.atendidoPor.rol}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="nowrap">
+                        {v.metodoPago ? (ETIQUETA_METODO[v.metodoPago] || v.metodoPago) : "—"}
+                      </td>
+                      <td className="num">{items}</td>
+                      <td className="num">
+                        <span className="sale-total">{formatearMoneda(v.total, config.moneda)}</span>
+                      </td>
+                      <td>
+                        {anulada ? (
+                          <span className="badge badge-danger">Anulada</span>
+                        ) : (
+                          <span className="status-dot is-ok">Completada</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="sales-actions">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setTicket(v)}
+                          >
+                            Ver
+                          </button>
+                          {!anulada && (isAdmin || esFarmaceutico) && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => pedirAnular(v)}
+                            >
+                              Anular
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           {totalPaginas > 1 && (
-            <div className="paginacion">
+            <div className="pagination">
               <button
-                className="btn-ghost btn-sm"
+                className="btn btn-ghost btn-sm"
                 onClick={() => setPagina((p) => Math.max(1, p - 1))}
                 disabled={paginaActual === 1}
               >
                 Anterior
               </button>
-              <span className="muted small">Página {paginaActual} de {totalPaginas}</span>
+              <span className="pagination-info">Página {paginaActual} de {totalPaginas}</span>
               <button
-                className="btn-ghost btn-sm"
+                className="btn btn-ghost btn-sm"
                 onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
                 disabled={paginaActual === totalPaginas}
               >
@@ -293,6 +335,7 @@ export default function Ventas() {
           )}
         </>
       )}
+
       {ticket && (
         <Modal titulo="Comprobante de venta" onClose={() => setTicket(null)}>
           <Comprobante venta={ticket} onClose={() => setTicket(null)} />
@@ -315,9 +358,10 @@ export default function Ventas() {
           }}
           onConfirm={confirmarAnulacion}
         >
-          <label className="form-grid" style={{ marginTop: 8 }}>
-            Motivo de anulación
+          <label className="field">
+            <span className="label">Motivo de anulación</span>
             <textarea
+              className="textarea"
               value={motivoAnulacion}
               onChange={(e) => setMotivoAnulacion(e.target.value)}
               maxLength={250}

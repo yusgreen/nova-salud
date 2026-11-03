@@ -52,19 +52,19 @@ export default function Modal({ titulo, onClose, children, wide = false }) {
   }, []);
 
   return (
-    <div className={`modal-overlay ${wide ? "modal-overlay-wide" : ""}`} onClick={onClose}>
+    <div className={`modal-overlay ${wide ? "modal-wide" : ""}`} onClick={onClose}>
       <div
         ref={cardRef}
-        className={`modal-card ${wide ? "wide" : ""}`}
+        className={`modal ${wide ? "wide" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="modal-head">
-          <h2>{titulo}</h2>
-          <button className="modal-x" onClick={onClose} aria-label="Cerrar">×</button>
+        <div className="modal-header">
+          <h2 className="modal-title">{titulo}</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Cerrar">×</button>
         </div>
         <div className="modal-body">{children}</div>
       </div>

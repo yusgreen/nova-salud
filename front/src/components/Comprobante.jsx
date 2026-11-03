@@ -105,12 +105,12 @@ export default function Comprobante({ venta, onClose }) {
       <p className="ticket-print-pie">Gracias por su compra</p>
 
       <div className="modal-foot ticket-print-actions">
-        <button type="button" className="btn-ghost" onClick={onClose}>
+        <button type="button" className="btn btn-ghost" onClick={onClose}>
           Cerrar
         </button>
         <button
           type="button"
-          className="btn-primary"
+          className="btn btn-primary"
           onClick={() => window.print()}
         >
           Imprimir

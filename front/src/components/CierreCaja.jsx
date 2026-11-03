@@ -106,25 +106,30 @@ export default function CierreCaja() {
   if (loading && !data) return <SkeletonLines count={6} />;
   if (error) return <p className="status error">{error}</p>;
 
+  const anuladas = resumen?.anuladas?.cantidad ?? 0;
+
   return (
-    <div className="cierre-page cierre-print">
-      <header className="cierre-head">
+    <div className="cierre cierre-print">
+      <header className="page-head">
         <div>
-          <h2>Cierre de caja</h2>
-          <p className="muted">Resumen de ventas por fecha y usuario.</p>
+          <p className="kicker">Cierre</p>
+          <h2 className="page-title">Cierre de caja</h2>
+          <p className="page-sub">Resumen de ventas por fecha y usuario.</p>
         </div>
-        <div className="cierre-filtros">
-          <label>
+        <div className="filter-row no-print">
+          <label className="filter-field">
             Fecha
             <input
+              className="input"
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
             />
           </label>
-          <label>
+          <label className="filter-field">
             Usuario
             <select
+              className="select"
               value={usuarioId}
               onChange={(e) => setUsuarioId(e.target.value)}
               disabled={!gestor}
@@ -144,89 +149,108 @@ export default function CierreCaja() {
         </div>
       </header>
 
-      <div className="cierre-resumen">
-        <div className="cierre-card">
-          <span className="cierre-num">{resumen?.cantidadVentas ?? 0}</span>
-          <span className="cierre-label">Ventas completadas</span>
-        </div>
-        <div className="cierre-card">
-          <span className="cierre-num">
+      <div className="kpi-grid">
+        <article className="kpi">
+          <span className="kpi-label">Ventas completadas</span>
+          <strong className="kpi-value">{resumen?.cantidadVentas ?? 0}</strong>
+        </article>
+        <article className="kpi">
+          <span className="kpi-label">Total general</span>
+          <strong className="kpi-value font-mono">
             {formatearMoneda(resumen?.totalGeneral ?? 0, config.moneda)}
-          </span>
-          <span className="cierre-label">Total general</span>
-        </div>
-        <div className="cierre-card">
-          <span className="cierre-num">
+          </strong>
+        </article>
+        <article className="kpi">
+          <span className="kpi-label">Efectivo esperado</span>
+          <strong className="kpi-value font-mono">
             {formatearMoneda(resumen?.efectivoEsperado ?? 0, config.moneda)}
-          </span>
-          <span className="cierre-label">Efectivo esperado</span>
-        </div>
-        <div className="cierre-card">
-          <span className="cierre-num">{resumen?.anuladas?.cantidad ?? 0}</span>
-          <span className="cierre-label">
-            Anuladas ({formatearMoneda(resumen?.anuladas?.total ?? 0, config.moneda)})
-          </span>
-        </div>
+          </strong>
+          <span className="kpi-hint">Para cuadre de caja</span>
+        </article>
+        <article className={`kpi ${anuladas > 0 ? "is-danger" : ""}`}>
+          <span className="kpi-label">Anuladas</span>
+          <strong className="kpi-value font-mono">
+            {formatearMoneda(resumen?.anuladas?.total ?? 0, config.moneda)}
+          </strong>
+          <span className="kpi-hint">{anuladas} ticket(s)</span>
+        </article>
       </div>
 
-      <div className="cierre-metodos">
-        <h3>Por método de pago</h3>
+      <section className="card methods-card">
+        <div className="card-header">
+          <h3 className="card-title">Por método de pago</h3>
+        </div>
         {(resumen?.porMetodo || []).length === 0 ? (
-          <p className="muted small">Sin ventas completadas.</p>
+          <p className="methods-empty">Sin ventas completadas.</p>
         ) : (
-          <ul>
+          <ul className="methods-list">
             {(resumen?.porMetodo || []).map((m) => (
               <li key={m.metodo}>
-                <span>{etiquetaMetodo(m.metodo)}</span>
-                <span className="muted small">{m.cantidad} venta(s)</span>
-                <strong>{formatearMoneda(m.total, config.moneda)}</strong>
+                <span className="method-name">{etiquetaMetodo(m.metodo)}</span>
+                <span className="text-muted small">{m.cantidad} venta(s)</span>
+                <strong className="method-total font-mono">
+                  {formatearMoneda(m.total, config.moneda)}
+                </strong>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
-      <div className="cierre-acciones">
-        <button type="button" className="btn-ghost" onClick={() => window.print()}>
+      <div className="toolbar-row no-print">
+        <button type="button" className="btn btn-ghost" onClick={() => window.print()}>
           Imprimir
         </button>
         {puedeGestionarInventario && (
-          <button type="button" className="btn-primary" onClick={onExport} disabled={exportando}>
+          <button type="button" className="btn btn-primary" onClick={onExport} disabled={exportando}>
             {exportando ? "Generando..." : "Exportar a Excel"}
           </button>
         )}
         {msgExport && <p className="status small">{msgExport}</p>}
       </div>
 
-      <div className="cierre-lista">
-        <h3>Detalle</h3>
+      <section className="cierre-detail">
+        <h3 className="section-title">Detalle</h3>
         {ventas.length === 0 ? (
-          <p className="muted small">Sin ventas en este rango.</p>
+          <p className="text-muted small">Sin ventas en este rango.</p>
         ) : (
-          <table className="cierre-table">
-            <thead>
-              <tr>
-                <th>Ticket</th>
-                <th>Usuario</th>
-                <th>Método</th>
-                <th className="num">Total</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ventas.map((v) => (
-                <tr key={v.id} className={v.estado === "ANULADA" ? "anulada" : ""}>
-                  <td>#{v.id}</td>
-                  <td>{v.atendidoPor?.nombre || "—"}</td>
-                  <td>{etiquetaMetodo(v.metodoPago)}</td>
-                  <td className="num">{formatearMoneda(v.total, config.moneda)}</td>
-                  <td>{v.estado === "ANULADA" ? "Anulada" : "Completada"}</td>
+          <div className="table-wrap">
+            <table className="table cierre-detail-table">
+              <thead>
+                <tr>
+                  <th>Ticket</th>
+                  <th>Usuario</th>
+                  <th>Método</th>
+                  <th className="num">Total</th>
+                  <th>Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {ventas.map((v) => {
+                  const anulada = v.estado === "ANULADA";
+                  return (
+                    <tr key={v.id} className={anulada ? "is-void" : ""}>
+                      <td className="font-mono">#{v.id}</td>
+                      <td>{v.atendidoPor?.nombre || "—"}</td>
+                      <td>{etiquetaMetodo(v.metodoPago)}</td>
+                      <td className="num">
+                        <span className="sale-total">{formatearMoneda(v.total, config.moneda)}</span>
+                      </td>
+                      <td>
+                        {anulada ? (
+                          <span className="badge badge-danger">Anulada</span>
+                        ) : (
+                          <span className="status-dot is-ok">Completada</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
-      </div>
+      </section>
 
       {ticket && (
         <Modal titulo="Comprobante de venta" onClose={() => setTicket(null)}>

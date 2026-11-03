@@ -14,9 +14,9 @@ export default function Register({ onSwitch }) {
     e.preventDefault();
     setError(""); setBusy(true);
     try {
-      await register(nombre, email, password); // back fuerza rol "cajero"
+      await register(nombre, email, password);
     } catch (err) {
-      setError(err.message); // ej. "El email ya está registrado" (409)
+      setError(err.message);
     } finally {
       setBusy(false);
     }
@@ -24,17 +24,25 @@ export default function Register({ onSwitch }) {
 
   return (
     <AuthLayout>
-      <form className="auth-card" onSubmit={onSubmit}>
+      <form className="auth-form" onSubmit={onSubmit}>
         <div className="auth-form-head">
           <h1 className="auth-title">Crea tu cuenta</h1>
-          <p className="muted">Un acceso simple para empezar a vender</p>
+          <p className="text-muted">Un acceso simple para empezar a vender</p>
         </div>
         {error && <p className="status error">{error}</p>}
-        <label>Nombre<input value={nombre} onChange={(e)=>setNombre(e.target.value)} required /></label>
-        <label>Email<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" placeholder="tu@correo.com" required /></label>
-        <label>Contraseña (min 6)<input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="Tu contraseña" minLength={6} required /></label>
-        <button className="btn-primary" disabled={busy}>{busy ? "Creando..." : "Registrarme"}</button>
-        <p className="muted small">
+        <div className="form-grid">
+          <label className="label">Nombre
+            <input className="input" value={nombre} onChange={(e)=>setNombre(e.target.value)} required autoComplete="name" />
+          </label>
+          <label className="label">Email
+            <input className="input" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="tu@correo.com" required autoComplete="email" />
+          </label>
+          <label className="label">Contraseña (mín 6)
+            <input className="input" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Tu contraseña" minLength={6} required autoComplete="new-password" />
+          </label>
+        </div>
+        <button className="btn btn-primary btn-block" disabled={busy} type="submit">{busy ? "Creando..." : "Registrarme"}</button>
+        <p className="auth-switch text-muted">
           ¿Ya tienes cuenta? <button type="button" className="link" onClick={onSwitch}>Ingresa</button>
         </p>
       </form>

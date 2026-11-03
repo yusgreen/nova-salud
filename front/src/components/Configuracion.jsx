@@ -3,7 +3,7 @@ import { useConfig } from "../context/ConfigContext";
 import { useTheme } from "../context/ThemeContext";
 import { usePreferencias } from "../context/PreferenciasContext";
 import { formatearMoneda } from "../services/format";
-import { IconConfiguracion, IconLogo } from "./Icons";
+import { IconLogo } from "./Icons";
 
 const CAMPOS = [
   "nombreNegocio",
@@ -67,25 +67,21 @@ export default function Configuracion() {
   }
 
   return (
-    <div className="config-page">
-      <header className="config-head">
-        <div className="config-title">
-          <span className="config-icon" aria-hidden="true">
-            <IconConfiguracion />
-          </span>
-          <div>
-            <h2>Configuración</h2>
-            <p className="muted">
-              {tab === "sistema"
-                ? "Ajustes globales del sistema. Solo el administrador puede modificarlos."
-                : "Ajustes de este navegador. Se guarda en este navegador."}
-            </p>
-          </div>
+    <div className="settings">
+      <header className="page-head">
+        <div>
+          <p className="kicker">Configuración</p>
+          <h2 className="page-title">Ajustes</h2>
+          <p className="page-sub">
+            {tab === "sistema"
+              ? "Ajustes globales del sistema. Solo el administrador puede modificarlos."
+              : "Ajustes de este navegador. Se guarda en este navegador."}
+          </p>
         </div>
-        {tab === "sistema" && <span className="config-badge">Solo admin</span>}
+        {tab === "sistema" && <span className="badge badge-neutral">Solo admin</span>}
       </header>
 
-      <div className="tabs" style={{ marginBottom: 16 }}>
+      <div className="segmented">
         {[
           { v: "apariencia", t: "Apariencia" },
           { v: "preferencias", t: "Preferencias" },
@@ -94,7 +90,7 @@ export default function Configuracion() {
           <button
             key={o.v}
             type="button"
-            className={`tab ${tab === o.v ? "active" : ""}`}
+            className={`segment ${tab === o.v ? "is-active" : ""}`}
             onClick={() => setTab(o.v)}
           >
             {o.t}
@@ -103,10 +99,10 @@ export default function Configuracion() {
       </div>
 
       {tab === "apariencia" && (
-        <div className="config-card">
-          <section className="config-section">
-            <h3>Tema</h3>
-            <div className="tabs">
+        <section className="card settings-card">
+          <div className="setting">
+            <h3 className="setting-title">Tema</h3>
+            <div className="segmented">
               {[
                 { v: "light", t: "Claro" },
                 { v: "dark", t: "Oscuro" },
@@ -115,64 +111,59 @@ export default function Configuracion() {
                 <button
                   key={o.v}
                   type="button"
-                  className={`tab ${preferencia === o.v ? "active" : ""}`}
+                  className={`segment ${preferencia === o.v ? "is-active" : ""}`}
                   onClick={() => cambiarTema(o.v)}
                 >
                   {o.t}
                 </button>
               ))}
             </div>
-            <p className="config-help">
+            <p className="setting-help">
               Se guarda en este navegador. "Sistema" sigue la preferencia del SO.
             </p>
-          </section>
+          </div>
 
-          <section className="config-section">
-            <h3>Modo compacto</h3>
-            <div className="config-switch">
-              <span>
-                <strong>Activar modo compacto</strong>
-                <span className="muted small">
-                  Reduce espaciados y tamaños para mostrar más información.
-                </span>
+          <div className="setting-row">
+            <div className="setting-info">
+              <span className="setting-title">Modo compacto</span>
+              <span className="setting-help">
+                Reduce espaciados y tamaños para mostrar más información.
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={prefs.compacto}
-                className={`status-switch ${prefs.compacto ? "on" : ""}`}
-                onClick={() => actualizarPrefs({ compacto: !prefs.compacto })}
-              >
-                <span className="status-switch-dot" />
-              </button>
             </div>
-          </section>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={prefs.compacto}
+              className={`switch ${prefs.compacto ? "is-on" : ""}`}
+              onClick={() => actualizarPrefs({ compacto: !prefs.compacto })}
+              aria-label="Activar modo compacto"
+            />
+          </div>
 
-          <section className="config-section">
-            <h3>Tamaño de fuente</h3>
-            <label>
-              Tamaño
-              <select
-                value={prefs.tamanoFuente}
-                onChange={(e) => actualizarPrefs({ tamanoFuente: e.target.value })}
-              >
-                <option value="pequeno">Pequeño</option>
-                <option value="medio">Mediano</option>
-                <option value="grande">Grande</option>
-              </select>
-            </label>
-          </section>
-        </div>
+          <label className="field">
+            <span className="label">Tamaño de fuente</span>
+            <select
+              className="select"
+              value={prefs.tamanoFuente}
+              onChange={(e) => actualizarPrefs({ tamanoFuente: e.target.value })}
+            >
+              <option value="pequeno">Pequeño</option>
+              <option value="medio">Mediano</option>
+              <option value="grande">Grande</option>
+            </select>
+          </label>
+        </section>
       )}
 
       {tab === "preferencias" && (
-        <div className="config-card">
-          <section className="config-section">
-            <h3>Formato y paginación</h3>
-            <div className="config-row">
-              <label>
-                Formato de fecha
+        <section className="card settings-card">
+          <div className="setting">
+            <h3 className="setting-title">Formato y paginación</h3>
+            <div className="form-grid cols-2">
+              <label className="field">
+                <span className="label">Formato de fecha</span>
                 <select
+                  className="select"
                   value={prefs.formatoFecha}
                   onChange={(e) => actualizarPrefs({ formatoFecha: e.target.value })}
                 >
@@ -181,9 +172,10 @@ export default function Configuracion() {
                   <option value="yyyy-mm-dd">AAAA-MM-DD</option>
                 </select>
               </label>
-              <label>
-                Filas por página
+              <label className="field">
+                <span className="label">Filas por página</span>
                 <input
+                  className="input"
                   type="number"
                   min="5"
                   max="100"
@@ -196,141 +188,142 @@ export default function Configuracion() {
                 />
               </label>
             </div>
-            <p className="config-help">
-              Se guarda en este navegador.
-            </p>
-          </section>
-        </div>
+            <p className="setting-help">Se guarda en este navegador.</p>
+          </div>
+        </section>
       )}
 
       {tab === "sistema" && (
-        <div className="config-grid">
-          <form className="config-card" onSubmit={onSubmit}>
-            <section className="config-section">
-              <h3>Identidad</h3>
-            <label>
-              Nombre del negocio
-              <input
-                value={form.nombreNegocio}
-                onChange={(e) => set("nombreNegocio", e.target.value)}
-                minLength={2}
-                maxLength={60}
-                required
-              />
-            </label>
-            <label>
-              Lema o descripción
-              <input
-                value={form.lema}
-                onChange={(e) => set("lema", e.target.value)}
-                maxLength={120}
-              />
-            </label>
-          </section>
-
-          <section className="config-section">
-            <h3>Operación</h3>
-            <div className="config-row">
-              <label>
-                Símbolo de moneda
+        <div className="settings-layout">
+          <form className="card settings-card" onSubmit={onSubmit}>
+            <section className="setting">
+              <h3 className="setting-title">Identidad</h3>
+              <label className="field">
+                <span className="label">Nombre del negocio</span>
                 <input
-                  value={form.moneda}
-                  onChange={(e) => set("moneda", e.target.value)}
-                  maxLength={4}
+                  className="input"
+                  value={form.nombreNegocio}
+                  onChange={(e) => set("nombreNegocio", e.target.value)}
+                  minLength={2}
+                  maxLength={60}
                   required
                 />
               </label>
-              <label>
-                Umbral de stock bajo
+              <label className="field">
+                <span className="label">Lema o descripción</span>
                 <input
-                  type="number"
-                  min="0"
-                  max="100000"
-                  value={form.umbralStockBajo}
-                  onChange={(e) =>
-                    set(
-                      "umbralStockBajo",
-                      e.target.value === "" ? "" : Number(e.target.value)
-                    )
-                  }
-                  required
+                  className="input"
+                  value={form.lema}
+                  onChange={(e) => set("lema", e.target.value)}
+                  maxLength={120}
                 />
               </label>
-            </div>
-            <p className="config-help">
-              Se usa como stock mínimo inicial al crear un producto nuevo.
-            </p>
-          </section>
+            </section>
 
-          <section className="config-section">
-            <h3>Acceso</h3>
-            <label className="config-switch">
-              <span>
-                <strong>Mostrar credenciales demo</strong>
-                <span className="muted small">
-                  Muestra la pista de acceso en la pantalla de Login.
-                </span>
-              </span>
+            <section className="setting">
+              <h3 className="setting-title">Operación</h3>
+              <div className="form-grid cols-2">
+                <label className="field">
+                  <span className="label">Símbolo de moneda</span>
+                  <input
+                    className="input"
+                    value={form.moneda}
+                    onChange={(e) => set("moneda", e.target.value)}
+                    maxLength={4}
+                    required
+                  />
+                </label>
+                <label className="field">
+                  <span className="label">Umbral de stock bajo</span>
+                  <input
+                    className="input"
+                    type="number"
+                    min="0"
+                    max="100000"
+                    value={form.umbralStockBajo}
+                    onChange={(e) =>
+                      set(
+                        "umbralStockBajo",
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
+                    required
+                  />
+                </label>
+              </div>
+              <p className="setting-help">
+                Se usa como stock mínimo inicial al crear un producto nuevo.
+              </p>
+            </section>
+
+            <section className="setting">
+              <h3 className="setting-title">Acceso</h3>
+              <div className="setting-row">
+                <div className="setting-info">
+                  <span className="setting-title">Mostrar credenciales demo</span>
+                  <span className="setting-help">
+                    Muestra la pista de acceso en la pantalla de Login.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.mostrarAyudaDemo}
+                  className={`switch ${form.mostrarAyudaDemo ? "is-on" : ""}`}
+                  onClick={() => set("mostrarAyudaDemo", !form.mostrarAyudaDemo)}
+                  aria-label="Mostrar credenciales demo"
+                />
+              </div>
+            </section>
+
+            {error && <p className="status error">{error}</p>}
+            {ok && <p className="status ok">{ok}</p>}
+
+            <div className="modal-actions">
               <button
                 type="button"
-                role="switch"
-                aria-checked={form.mostrarAyudaDemo}
-                className={`status-switch ${form.mostrarAyudaDemo ? "on" : ""}`}
-                onClick={() => set("mostrarAyudaDemo", !form.mostrarAyudaDemo)}
+                className="btn btn-ghost"
+                onClick={descartar}
+                disabled={!cambios || busy}
               >
-                <span className="status-switch-dot" />
+                Descartar
               </button>
-            </label>
-          </section>
-
-          {error && <p className="status error">{error}</p>}
-          {ok && <p className="status ok">{ok}</p>}
-
-          <div className="config-actions">
-            <button
-              type="button"
-              className="btn-ghost"
-              onClick={descartar}
-              disabled={!cambios || busy}
-            >
-              Descartar
-            </button>
-            <button type="submit" className="btn-primary" disabled={!cambios || busy}>
-              {busy ? "Guardando…" : "Guardar cambios"}
-            </button>
-          </div>
-        </form>
-
-        <aside className="config-preview">
-          <p className="config-kicker">Vista previa</p>
-          <div className="config-brandcard">
-            <span className="config-logo" aria-hidden="true">
-              <IconLogo />
-            </span>
-            <div>
-              <strong>{form.nombreNegocio || "Nova Salud"}</strong>
-              <span>{form.lema || "Sin lema"}</span>
+              <button type="submit" className="btn btn-primary" disabled={!cambios || busy}>
+                {busy ? "Guardando…" : "Guardar cambios"}
+              </button>
             </div>
-          </div>
+          </form>
 
-          <div className="config-demo">
-            <span>Ticket de ejemplo</span>
-            <strong>{formatearMoneda(24.9, form.moneda || "S/")}</strong>
-          </div>
+          <aside className="card preview-card">
+            <p className="kicker">Vista previa</p>
+            <div className="preview-brand">
+              <span className="preview-brand-logo" aria-hidden="true">
+                <IconLogo />
+              </span>
+              <div className="preview-brand-text">
+                <strong>{form.nombreNegocio || "Nova Salud"}</strong>
+                <span>{form.lema || "Sin lema"}</span>
+              </div>
+            </div>
 
-          <ul className="config-facts">
-            <li>
-              Stock mínimo inicial:{" "}
-              <strong>{form.umbralStockBajo === "" ? "—" : form.umbralStockBajo}</strong>
-            </li>
-            <li>
-              Ayuda demo en Login:{" "}
-              <strong>{form.mostrarAyudaDemo ? "visible" : "oculta"}</strong>
-            </li>
-            <li>Los cambios se aplican a todos los usuarios.</li>
-          </ul>
-        </aside>
-      </div>
+            <div className="preview-ticket">
+              <span>Ticket de ejemplo</span>
+              <strong className="font-mono">{formatearMoneda(24.9, form.moneda || "S/")}</strong>
+            </div>
+
+            <ul className="preview-facts">
+              <li>
+                Stock mínimo inicial:{" "}
+                <strong>{form.umbralStockBajo === "" ? "—" : form.umbralStockBajo}</strong>
+              </li>
+              <li>
+                Ayuda demo en Login:{" "}
+                <strong>{form.mostrarAyudaDemo ? "visible" : "oculta"}</strong>
+              </li>
+              <li>Los cambios se aplican a todos los usuarios.</li>
+            </ul>
+          </aside>
+        </div>
       )}
     </div>
   );

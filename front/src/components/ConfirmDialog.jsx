@@ -4,12 +4,12 @@ export default function ConfirmDialog({ titulo, mensaje, onConfirm, onCancel, er
   return (
     <Modal titulo={titulo} onClose={onCancel}>
       {error && <p className="status error">{error}</p>}
-      <p className="confirm-msg">{mensaje}</p>
+      <p className="confirm-message">{mensaje}</p>
       {children}
-      <div className="modal-foot">
-        <button className="btn-ghost" onClick={onCancel}>Cancelar</button>
+      <div className="modal-actions">
+        <button className="btn btn-ghost" onClick={onCancel}>Cancelar</button>
         <button
-          className={`btn-primary ${peligro ? "btn-danger" : ""}`}
+          className={`btn ${peligro ? "btn-danger" : "btn-primary"}`}
           onClick={onConfirm}
           disabled={disabled}
         >

@@ -76,16 +76,17 @@ export default function ProfileModal({ onClose }) {
 
   return (
     <Modal titulo="Mi perfil" onClose={onClose}>
-      <div className="profile-modal">
-        <p className="muted small">
+      <div className="profile">
+        <p className="text-muted small">
           Sesión iniciada como <strong>{usuario?.email}</strong>
         </p>
 
         <form className="form-grid" onSubmit={guardarNombre}>
           <h3 className="profile-section-title">Datos personales</h3>
-          <label>
-            Nombre
+          <label className="field">
+            <span className="label">Nombre</span>
             <input
+              className="input"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               maxLength={80}
@@ -93,9 +94,9 @@ export default function ProfileModal({ onClose }) {
             />
           </label>
           {errorNombre && <p className="field-error">{errorNombre}</p>}
-          <div className="modal-foot">
-            <button type="button" className="btn-ghost" onClick={onClose}>Cerrar</button>
-            <button className="btn-primary" disabled={busyNombre}>
+          <div className="modal-actions">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>Cerrar</button>
+            <button className="btn btn-primary" disabled={busyNombre}>
               {busyNombre ? "Guardando..." : "Guardar nombre"}
             </button>
           </div>
@@ -105,9 +106,10 @@ export default function ProfileModal({ onClose }) {
 
         <form className="form-grid" onSubmit={guardarPassword}>
           <h3 className="profile-section-title">Cambiar contraseña</h3>
-          <label>
-            Contraseña actual
+          <label className="field">
+            <span className="label">Contraseña actual</span>
             <input
+              className="input"
               type="password"
               value={passwordActual}
               onChange={(e) => setPasswordActual(e.target.value)}
@@ -115,9 +117,10 @@ export default function ProfileModal({ onClose }) {
               required
             />
           </label>
-          <label>
-            Nueva contraseña
+          <label className="field">
+            <span className="label">Nueva contraseña</span>
             <input
+              className="input"
               type="password"
               value={passwordNueva}
               onChange={(e) => setPasswordNueva(e.target.value)}
@@ -126,9 +129,10 @@ export default function ProfileModal({ onClose }) {
               required
             />
           </label>
-          <label>
-            Confirmar nueva contraseña
+          <label className="field">
+            <span className="label">Confirmar nueva contraseña</span>
             <input
+              className="input"
               type="password"
               value={confirmar}
               onChange={(e) => setConfirmar(e.target.value)}
@@ -138,8 +142,8 @@ export default function ProfileModal({ onClose }) {
             />
           </label>
           {errorPassword && <p className="field-error">{errorPassword}</p>}
-          <div className="modal-foot">
-            <button className="btn-primary" disabled={busyPassword}>
+          <div className="modal-actions">
+            <button className="btn btn-primary" disabled={busyPassword}>
               {busyPassword ? "Cambiando..." : "Cambiar contraseña"}
             </button>
           </div>

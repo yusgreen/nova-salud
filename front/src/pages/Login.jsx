@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useConfig } from "../context/ConfigContext";
 import AuthLayout from "../components/AuthLayout";
 
 export default function Login({ onSwitch }) {
   const { login } = useAuth();
-  const { config } = useConfig();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -15,9 +13,9 @@ export default function Login({ onSwitch }) {
     e.preventDefault();
     setError(""); setBusy(true);
     try {
-      await login(email, password); // si falla, api.js lanza Error con data.error del back
+      await login(email, password);
     } catch (err) {
-      setError(err.message);        // ej. "Credenciales inválidas"
+      setError(err.message);
     } finally {
       setBusy(false);
     }
@@ -25,21 +23,24 @@ export default function Login({ onSwitch }) {
 
   return (
     <AuthLayout>
-      <form className="auth-card" onSubmit={onSubmit}>
+      <form className="auth-form" onSubmit={onSubmit}>
         <div className="auth-form-head">
           <h1 className="auth-title">Bienvenido de nuevo</h1>
-          <p className="muted">Ingresa para gestionar el inventario</p>
+          <p className="text-muted">Ingresa para gestionar el inventario</p>
         </div>
         {error && <p className="status error">{error}</p>}
-        <label>Email<input value={email} onChange={(e)=>setEmail(e.target.value)} type="email" placeholder="tu@correo.com" required /></label>
-        <label>Contraseña<input value={password} onChange={(e)=>setPassword(e.target.value)} type="password" placeholder="Tu contraseña" required /></label>
-        <button className="btn-primary" disabled={busy}>{busy ? "Entrando..." : "Ingresar"}</button>
-        <p className="muted small">
+        <div className="form-grid">
+          <label className="label">Email
+            <input className="input" type="email" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="tu@correo.com" required autoComplete="email" />
+          </label>
+          <label className="label">Contraseña
+            <input className="input" type="password" value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="Tu contraseña" required autoComplete="current-password" />
+          </label>
+        </div>
+        <button className="btn btn-primary btn-block" disabled={busy} type="submit">{busy ? "Entrando..." : "Ingresar"}</button>
+        <p className="auth-switch text-muted">
           ¿Sin cuenta? <button type="button" className="link" onClick={onSwitch}>Regístrate</button>
         </p>
-        {config.mostrarAyudaDemo && (
-          <p className="hint">Demo: admin@novasalud.pe / admin123</p>
-        )}
       </form>
     </AuthLayout>
   );

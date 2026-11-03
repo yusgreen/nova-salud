@@ -1,32 +1,28 @@
 import { useConfig } from "../context/ConfigContext";
 import { IconLogo } from "./Icons";
-import { IlustracionFarmacia } from "./Illustrations";
 
 export default function AuthLayout({ children }) {
   const { config } = useConfig();
 
   return (
     <div className="auth-shell">
-      <div className="auth-panel">
-        <aside className="auth-showcase">
-          <div className="auth-showcase-brand">
-            <span className="auth-logo"><IconLogo aria-hidden="true" /></span>
-            <div>
-              <strong>{config.nombreNegocio}</strong>
-              <span>{config.lema}</span>
-            </div>
+      <div className="auth-card">
+        <header className="auth-header">
+          <span className="auth-logo"><IconLogo aria-hidden="true" /></span>
+          <div className="auth-brand">
+            <strong className="auth-name">{config.nombreNegocio}</strong>
+            <span className="auth-tagline">{config.lema}</span>
           </div>
+        </header>
 
-          <IlustracionFarmacia className="auth-illustration" />
+        <div className="auth-body">{children}</div>
 
-          <ul className="auth-benefits">
-            <li><span className="auth-dot" /> Inventario y stock en tiempo real</li>
-            <li><span className="auth-dot" /> Ventas rápidas con trazabilidad</li>
-            <li><span className="auth-dot" /> Alertas de reposición automáticas</li>
-          </ul>
-        </aside>
-
-        <div className="auth-form-panel">{children}</div>
+        {config.mostrarAyudaDemo && (
+          <footer className="auth-demo">
+            <span>Acceso demo</span>
+            <span className="auth-demo-cred">admin@novasalud.pe · admin123</span>
+          </footer>
+        )}
       </div>
     </div>
   );
