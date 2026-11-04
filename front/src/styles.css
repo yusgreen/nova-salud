@@ -308,7 +308,7 @@ a:hover { text-decoration: underline; }
     width: 280px;
     --sidebar-w: 280px;
   }
-  .sidebar.open { transform: translateX(0); }
+  .sidebar.open { transform: translateX(0); z-index: var(--z-drawer); }
   .menu-btn { display: flex; }
   .drawer-overlay {
     display: block;
