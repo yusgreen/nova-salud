@@ -9,6 +9,15 @@ function normalizarEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+const CAMPOS_PUBLICOS = {
+  id: true,
+  nombre: true,
+  email: true,
+  rol: true,
+  activo: true,
+  avatar: true,
+};
+
 function usuarioSeguro(usuario) {
   const { passwordHash, ...resto } = usuario;
   return resto;
@@ -154,10 +163,27 @@ exports.me = async (req, res) => {
 
 exports.updateMe = async (req, res) => {
   try {
-    const nombre = String(req.body?.nombre || "").trim();
+    const { nombre, avatar } = req.body;
+    const nombreLimpio = String(nombre || "").trim();
 
-    if (!nombre) {
+    if (nombre !== undefined && !nombreLimpio) {
       return res.status(400).json({ error: "El nombre es obligatorio" });
+    }
+
+    if (avatar !== undefined && avatar !== null) {
+      if (typeof avatar !== "string" || !avatar.startsWith("data:image/")) {
+        return res.status(400).json({ error: "Formato de imagen inválido" });
+      }
+      // Limite ~60 KB: 60 * 1024 = 61440 bytes; base64 agrega ~33% de overhead.
+      // Dejamos margen y limitamos la cadena a 85000 caracteres.
+      if (avatar.length > 85000) {
+        return res.status(400).json({ error: "La imagen es demasiado grande (máx 60KB)" });
+      }
+      const allowed = ["image/jpeg", "image/png", "image/webp"];
+      const mime = avatar.split(";")[0].split(":")[1];
+      if (!allowed.includes(mime)) {
+        return res.status(400).json({ error: "Formato de imagen no permitido (solo JPG, PNG, WebP)" });
+      }
     }
 
     const actual = await prisma.usuario.findUnique({
@@ -168,27 +194,32 @@ exports.updateMe = async (req, res) => {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
 
-    // Si no hay cambios reales, evito una escritura y una auditoría vacía.
-    if (actual.nombre === nombre) {
+    const data = {};
+    if (nombre !== undefined && nombreLimpio !== actual.nombre) data.nombre = nombreLimpio;
+    if (avatar !== undefined && avatar !== actual.avatar) data.avatar = avatar;
+
+    if (Object.keys(data).length === 0) {
       return res.json({ user: usuarioSeguro(actual) });
     }
 
     const usuario = await prisma.usuario.update({
       where: { id: actual.id },
-      data: { nombre },
+      data,
     });
+
+    const accion = avatar !== undefined ? "AVATAR_UPDATE" : "PROFILE_UPDATE";
+    const cambios = {};
+    if (data.nombre) cambios.nombre = { antes: actual.nombre, despues: usuario.nombre };
+    // No guardamos la imagen en el detalle de auditoría por tamaño
+    if (avatar !== undefined) cambios.avatar = avatar === null ? "removido" : "actualizado";
 
     await auditar({
       req,
       userId: usuario.id,
-      accion: "PROFILE_UPDATE",
+      accion,
       entidad: "Usuario",
       entidadId: usuario.id,
-      detalle: {
-        cambios: {
-          nombre: { antes: actual.nombre, despues: usuario.nombre },
-        },
-      },
+      detalle: { cambios },
     });
 
     return res.json({ user: usuarioSeguro(usuario) });

@@ -68,8 +68,8 @@ export function AuthProvider({ children }) {
     return data.user;
   }
 
-  async function actualizarPerfil(nombre) {
-    const data = await api.put("/auth/me", { nombre });
+  async function actualizarPerfil(datos) {
+    const data = await api.put("/auth/me", datos);
     setUsuario(data.user);
     return data.user;
   }

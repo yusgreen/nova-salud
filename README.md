@@ -1,8 +1,4 @@
 # Nova Salud 💊
-> la terminal o los logs de Render). Así se resuelve en minutos, no en horas.
-| Mètodo | Ruta | Auth | Qué hace |
-| --- | --- | :---: | --- |
-# Nova Salud 💊
 
 Sistema web de **inventario y ventas en tiempo real** para una botica. Trabajo
 entregable del curso de Full Stack Developer (entrega: 7 de noviembre).
@@ -230,9 +226,9 @@ nova-salud/
 │       ├── index.js       ← arranca el servidor HTTP + Socket.io
 │       ├── prisma.js      ← instancia única de Prisma (el cliente de BD)
 │       ├── config/auth.js ← secreto y expiración del JWT
-│       ├── controllers/   ← la lógica de cada ruta (auth, product, sale, audit, settings)
+│       ├── controllers/   ← la lógica de cada ruta (auth, product, sale, audit, settings, user)
 │       ├── middleware/    ← filtros que corren ANTES de la lógica (auth, attachIo)
-│       ├── routes/        ← el mapa de URLs (/auth, /products, /sales, /audit, /settings)
+│       ├── routes/        ← el mapa de URLs (/auth, /products, /sales, /audit, /settings, /users)
 │       └── sockets/       ← quién escucha las conexiones de Socket.io
 │
 └── front/                 ← LA INTERFAZ (React + Vite + Socket.io-client)
@@ -242,13 +238,13 @@ nova-salud/
     ├── index.html         ← el HTML raíz que carga React
     └── src/
         ├── main.jsx       ← punto de entrada, monta los Providers globales
-        ├── App.jsx        ← decide qué vista mostrar (Login / Dashboard / Inventario / Caja / Ventas / Auditoría / Configuración)
-        ├── styles.css     ← tokens de diseño (tema claro/oscuro verde) + animaciones + responsive
+        ├── App.jsx        ← decide qué vista mostrar (Login / Dashboard / Inventario / Caja / Ventas / Cierre de caja / Auditoría / Configuración / Usuarios)
+        ├── styles.css     ← tokens de diseño (tema claro/oscuro/sistema) + animaciones + responsive
         ├── services/
         │   ├── api.js     ← wrapper de fetch: pone el token y la URL base en cada llamada
         │   └── socket.js  ← instancia única de Socket.io (singleton)
         ├── context/       ← estado global compartido (Auth, Product, Sale, Sales, Theme, Preferencias)
-        ├── components/    ← piezas de pantalla (Inventario, Caja, Ventas, Topbar, Toast, Modal…)
+        ├── components/    ← piezas de pantalla (Inventario, Caja, Ventas, CierreCaja, Auditoria, Configuracion, Usuarios, Topbar, Toast, Modal…)
         └── pages/         ← Login.jsx y Register.jsx
 ```
 
@@ -439,9 +435,7 @@ se abre, entra manual a `http://localhost:5173`.
 2. Inicia sesión con las credenciales del seed:
    - Email: `admin@novasalud.pe`
    - Contraseña: `admin123`
-3. Deberías entrar al **Inventario** con las 5 tarjetas, el chip
-   `Productos: 5`, `Bajo mínimo: 2`, y los badges **Reponer** en Ibuprofeno y
-   Vitamina C.
+3. Deberías entrar al **Dashboard** (panel de métricas del día). Desde la barra lateral navega a **Inventario**: verás una **tabla** con los 5 productos, chips de resumen `5 productos / 2 bajo mínimo` y badges **Reponer** en Ibuprofeno y Vitamina C.
 
 Si llegaste hasta aquí, **el proyecto corre completo en tu PC**. 🎉
 
@@ -450,11 +444,9 @@ Si llegaste hasta aquí, **el proyecto corre completo en tu PC**. 🎉
 <a name="9-uso-y-roles"></a>
 ## 9. Cómo usar la aplicación (y qué puede hacer cada rol)
 
-Arriba a la derecha ves el **nombre** del usuario logueado, un **chip de rol**
-(de color según el rol) y el botón **Salir**. Abajo hay **pestañas** que cambian
-según tu rol:
+En la **barra superior** (Topbar) verás un **saludo dinámico** con tu nombre (p. ej. "Buenos días, Juan"), la **fecha y hora exacta en vivo** (actualizada cada segundo) y, a la derecha, tu **avatar circular** con iniciales. Al hacer clic se abre un **menú** con tu nombre, email, chip de rol, la opción **Mi perfil** y **Salir**. El menú se cierra al hacer clic fuera, con `Escape` o navegando con teclado (flechas, Home, End). A la izquierda, la **barra lateral (sidebar)** muestra las secciones disponibles según tu rol:
 
-| Pestaña | Qué hace | Quién la ve |
+| Sección | Qué hace | Quién la ve |
 | --- | --- | --- |
 | **Dashboard** | Panel de control con metricas del dia (ventas, recaudado, ticket promedio, unidades, producto mas vendido, stock critico, vencimientos y recaudado por metodo de pago). | Todos los roles (vista adaptada por rol). |
 | **Inventario** | Muestra los medicamentos con precio, stock, vencimiento y semaforo de reposicion. Admin/farma pueden crear, editar, activar/desactivar, recibir mercaderia y filtrar por vencimiento o inactivos. | Todos leen; solo admin/farma editan. |
@@ -463,7 +455,7 @@ según tu rol:
 | **Cierre de caja** | Resumen por fecha y usuario: cantidad de ventas, total por metodo de pago, efectivo esperado y anuladas. Permite imprimir o exportar Excel. | Todos los roles (cada uno ve solo lo propio; admin/farma ven todos). |
 | **Usuarios** | Gestion de usuarios, roles, activacion/desactivacion y alta de usuarios. | Solo admin. |
 | **Auditoria** | Historial de acciones del sistema (login, ventas, anulaciones, productos, entradas de stock, usuarios y configuracion) con diff de cambios. | Solo admin/farma. |
-| **Configuracion** | Ajustes globales (nombre, lema, moneda, umbral de stock, ayuda demo) y personales (tema claro/oscuro/sistema, modo compacto, tamano de fuente, formato de fecha, filas por pagina). | Solo admin (el cajero y el farmaceutico no ven esta pestana). |
+| **Configuracion** | Ajustes globales (nombre, lema, moneda, umbral de stock, ayuda demo). **Solo admin** (cajero y farmacéutico no ven esta sección). **Tema**: todos los roles lo cambian desde **Mi perfil → Tema** (o el admin desde Configuración → Apariencia). **Fuente, modo compacto, formato de fecha y filas por página**: solo admin en Configuración → Apariencia / Preferencias. | Solo admin |
 
 | Rol | Ver Dashboard | Leer inventario | Editar/borrar inventario | Vender (caja) | Ver historial de ventas | Ver Auditoría |
 | --- | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -480,9 +472,8 @@ según tu rol:
 
 1. Abre `http://localhost:5173` en **dos pestañas** del navegador y inicia sesión como
    admin en las dos.
-2. En la pestaña A, ve a **Caja** y registra una venta (ej. Paracetamol ×2).
-3. Mira la pestaña B (en Inventario o en Ventas): **el stock baja solo y el ticket
-   aparece solo**, sin que toques nada ni recargues.
+2. En la pestaña A, ve a **Caja** y registra una venta de **Ibuprofeno ×2** (stock 12 → 10; **ya está bajo el mínimo 20 y la alerta se emite igual**).
+3. Mira la pestaña B (en Inventario o en Ventas): **el stock baja solo** (12 → 10), aparece el toast rojo **"Reponer: Ibuprofeno"** y el ticket se muestra en Ventas, sin que toques nada ni recargues.
 
 Eso es Socket.io: el backend emite `stock_actualizado`, `alerta_bajo_stock` y
 `venta_registrada`, y todos los clientes conectados los reciben en vivo.
@@ -516,19 +507,22 @@ header `Authorization: Bearer <token>` (el token que devuelve `/auth/login`).
 | GET | `/products/:id` | ❌ | Un producto por id. |
 | GET | `/products/:id/movimientos` | admin/farma | Historial de movimientos de stock (INICIAL, AJUSTE, VENTA, ANULACION, ENTRADA). |
 | POST | `/products` | 🔒 admin/farma | Crea producto (whitelist de campos). Devuelve 201. |
-| PUT | `/products/:id` | 🔒 admin/farma | Actualiza producto. |
-| PUT | `/products/:id` | admin/farma | Actualiza producto (incluye activo). |
+| PUT | `/products/:id` | 🔒 admin/farma | Actualiza producto (incluye `activo`). |
 | PUT | `/products/:id/estado` | admin/farma | Activa o desactiva un producto. |
 | POST | `/products/:id/entrada` | admin/farma | Recibe mercaderia: suma stock, crea movimiento ENTRADA y audita STOCK_ENTRY. |
 | DELETE | `/products/:id` | admin/farma | Borra producto. **409 si tiene ventas historicas** (trazabilidad). |
-| Metodo | Ruta | Auth | Que hace |
+
+### Ventas (`/sales`)
+
+| Método | Ruta | Auth | Qué hace |
 | --- | --- | :---: | --- |
-| POST | `/sales` | todos los roles | Registra venta atomica: valida stock, congela precio de BD, crea venta, descuenta stock, emite eventos. Body: `{ detalles: [{ productoId, cantidad }], metodoPago?, montoRecibido?, nota? }`.
-| GET | `/sales` | admin/farma | Historial con lineas, producto y quien atendio (sin passwordHash). Filtros opcionales: `desde`, `hasta`, `usuarioId`. 403 para cajero.
-| GET | `/sales/mi-turno` | todos los roles | Ventas del usuario autenticado.
-| GET | `/sales/cierre` | todos los roles | Cierre de caja por fecha y usuario (totales por metodo, efectivo esperado, anuladas).
-| GET | `/sales/export` | admin/farma | Exporta a Excel (respeta filtros y excluye anuladas).
-| POST | `/sales/:id/anular` | admin/farma | Anula una venta (motivo >= 5), repone stock y audita SALE_VOID.
+| POST | `/sales` | todos los roles | Registra venta atómica: valida stock, congela precio de BD, crea venta, descuenta stock, emite eventos. Body: `{ detalles: [{ productoId, cantidad }], metodoPago?, montoRecibido?, nota? }`. |
+| GET | `/sales` | admin/farma | Historial con lineas, producto y quien atendio (sin passwordHash). Filtros opcionales: `desde`, `hasta`, `usuarioId`. 403 para cajero. |
+| GET | `/sales/mi-turno` | todos los roles | Ventas del usuario autenticado. |
+| GET | `/sales/cierre` | todos los roles | Cierre de caja por fecha y usuario (totales por metodo, efectivo esperado, anuladas). |
+| GET | `/sales/export` | admin/farma | Exporta a Excel (respeta filtros y excluye anuladas). |
+| POST | `/sales/:id/anular` | admin/farma | Anula una venta (motivo >= 5), repone stock y audita SALE_VOID. |
+
 ### Auditoría (`/audit`)
 
 | Método | Ruta | Auth | Qué hace |
@@ -581,17 +575,14 @@ Invoke-RestMethod -Uri http://localhost:4000/sales -Method Post -Headers @{ Auth
 <a name="pruebas"></a>
 ## 10.1 Pruebas
 
-El backend incluye 53 pruebas automatizadas con `node:test`:
+El backend incluye 54 pruebas automatizadas con `node:test`:
 
 ```bash
 cd back
 npm test
 ```
 
-Cubren: autenticacion y auditoria, perfil propio, permisos por rol, ventas atomicas (precio de BD, descuento de stock, rollback), filtros de ventas, validacion de productos, inventario ampliado y trazabilidad, configuracion, gestion de usuarios, metodos de pago, anulacion de ventas, productos inactivos y entradas de mercaderia, y cierre de caja.
-descuento de stock, rollback por stock insuficiente), validación de productos,
-inventario ampliado y trazabilidad, y configuración (lectura pública, PUT solo
-admin, validaciones y auditoría).
+Cubren: autenticación y auditoría, perfil propio, permisos por rol, ventas atómicas (precio de BD, descuento de stock, rollback), filtros de ventas, validación de productos, inventario ampliado y trazabilidad, configuración, gestión de usuarios, métodos de pago, anulación de ventas, productos inactivos y entradas de mercadería, y cierre de caja.
 
 ---
 
@@ -606,7 +597,7 @@ por él (la única puerta de escritura es `POST /sales` con token).
 | Evento | Payload (ejemplo) | Qué provoca en el front |
 | --- | --- | --- |
 | `stock_actualizado` | `[{ id, nombre, stock }]` | Baja el número de stock en Inventario y Caja **sin recargar**. |
-| `alerta_bajo_stock` | `[{ id, nombre, stockNuevo, stockMinimo }]` (solo los que cruzaron el umbral) | Muestra un **toast** rojo "Reponer: …". |
+| `alerta_bajo_stock` | `[{ id, nombre, stockNuevo, stockMinimo }]` (se emite para los productos que quedan **en o bajo el mínimo** tras la venta: `stockNuevo ≤ stockMinimo`) | Muestra un **toast** rojo "Reponer: …". |
 | `venta_registrada` | `{ id, fecha, total, atendidoPor:{id,nombre,rol}, detalles:[…] }` | Agrega el ticket al historial de **Ventas** en vivo. |
 | `venta_anulada` | `{ id, estado, anuladaEn, motivoAnulacion, anuladaPor }` | Marca la venta como anulada en **Ventas** en vivo. |
 
@@ -624,9 +615,9 @@ Fuente de verdad: `back/prisma/schema.prisma`. Resumen de los 7 modelos:
 
 | Modelo | Campos principales | Relación |
 | --- | --- | --- |
-| **Usuario** | `id`, `nombre`, `email` (unico), `passwordHash` (nunca se expone), `rol` (`admin` \| `farmaceutico` \| `cajero`), `activo` (Boolean) | 1 Usuario -> muchas Ventas (`atendidoPor`) y ventas anuladas. |
+| **Usuario** | `id`, `nombre`, `email` (unico), `passwordHash` (nunca se expone), `rol` (`admin` \| `farmaceutico` \| `cajero`), `activo` (Boolean) | 1 Usuario -> muchas Ventas (`atendidoPor`), ventas anuladas (`anuladaPor`), `MovimientoStock` y `AuditLog`. |
 | **Producto** | `id`, `nombre`, `descripcion`, `precio` (Float), `stock` (Int), `stockMinimo` (Int), `imagen` (String), `codigo` (SKU, unico, autogenerado `P-0001`), `codigoBarras` (unico), `categoria`, `proveedor`, `unidad`, `precioCompra` (Float), `fechaVencimiento` (DateTime), `activo` (Boolean) | 1 Producto -> muchos DetalleVenta y MovimientoStock. |
-| **Venta** | `id`, `fecha` (DateTime), `total` (Float), `usuarioId` (FK), `metodoPago` (EFECTIVO/TARJETA/YAPE_PLIN), `montoRecibido` (Float?), `vuelto` (Float?), `estado` (COMPLETADA/ANULADA), `anuladaPorId` (FK?), `anuladaEn` (DateTime?), `motivoAnulacion` (String?) | 1 Venta -> muchos DetalleVenta. |
+| **Venta** | `id`, `fecha` (DateTime), `total` (Float), `usuarioId` (FK), `metodoPago` (EFECTIVO/TARJETA/YAPE_PLIN), `montoRecibido` (Float?), `vuelto` (Float?), `estado` (COMPLETADA/ANULADA), `anuladaPorId` (FK?), `anuladaEn` (DateTime?), `motivoAnulacion` (String?), `nota` (String?) | 1 Venta -> muchos DetalleVenta. |
 | **DetalleVenta** | `id`, `ventaId` (FK), `productoId` (FK), `cantidad` (Int), `precioUnitario` (Float, congelado al vender) | Une Venta ↔ Producto. |
 | **MovimientoStock** | `id`, `productoId` (FK), `usuarioId` (FK), `tipo` (INICIAL \| AJUSTE \| VENTA \| ANULACION \| ENTRADA), `cantidad` (delta), `stockAnterior`, `stockNuevo`, `motivo`, `creadoEn` | Trazabilidad de stock por producto. |
 | **Configuracion** | `id` (único = 1), `nombreNegocio`, `lema`, `moneda`, `umbralStockBajo`, `mostrarAyudaDemo`, `actualizadoEn` | Ajustes globales de la botica. |
@@ -657,6 +648,11 @@ Ningún `.env` se sube a Git (está en `.gitignore`). Cada carpeta tiene su
 | `JWT_SECRET` | cualquier cadena | una cadena larga aleatoria, **secreta** |
 | `JWT_EXPIRES_IN` | `1h` | `1h` |
 | `PORT` | (no hace falta, default 4000) | **no la pongas**: Render la inyecta (default 10000) |
+| `CORS_ORIGIN` | `http://localhost:5173` | `https://TU-FRONT.onrender.com` (URL pública exacta del front en Render, **sin barra final**) |
+
+> **Importante:** `CORS_ORIGIN` **debe** coincidir exactamente con la URL de tu front en Render. Sin ella, el backend usa `http://localhost:5173` como fallback y **bloqueará las peticiones del front desplegado** (CORS error).
+
+> **Orden de despliegue en Render:** 1) Crear backend con `CORS_ORIGIN` provisional (ej. `http://localhost:5173`). 2) Crear front (Static Site) apuntando a la URL del backend. 3) Copiar la URL exacta del front (sin barra final, ej. `https://nova-salud-1.onrender.com`). 4) Volver al backend en Render, actualizar `CORS_ORIGIN` con esa URL y **guardar la variable (Render redeploya solo) o Manual Deploy**.
 
 ### Frontend (`front/.env`)
 
@@ -688,28 +684,36 @@ URL del back para compilar.
 2. Conecta el repo `yusgreen/nova-salud` (rama `main`).
 3. Configura:
 
-   | Campo | Valor |
-   | --- | --- |
-   | **Root Directory** | `back` |
-   | **Build Command** | `npm install && npx prisma generate` |
-   | **Start Command** | `npx prisma db push && npx prisma db seed && node src/index.js` |
-   | **Environment** | Node |
-   | **Instance Type** | Free |
+    | Campo | Valor |
+    | --- | --- |
+    | **Root Directory** | `back` |
+    | **Build Command** | `npm install && npx prisma generate` |
+    | **Start Command** | `npx prisma db push && npx prisma db seed && node src/index.js` |
+    | **Environment** | Node |
+    | **Instance Type** | Free |
 
 4. En **Environment Variables**, agrega:
 
-   | Key | Value |
-   | --- | --- |
-   | `DATABASE_URL` | `file:./dev.db` |
-   | `JWT_SECRET` | (cadena larga aleatoria, secreta) |
-   | `JWT_EXPIRES_IN` | `1h` |
-   | `NODE_ENV` | `development` |
+    | Key | Value |
+    | --- | --- |
+    | `DATABASE_URL` | `file:./dev.db` |
+    | `JWT_SECRET` | (cadena larga aleatoria, secreta) |
+    | `JWT_EXPIRES_IN` | `1h` |
+    | `NODE_ENV` | `development` |
+    | `CORS_ORIGIN` | `http://localhost:5173` (provisional; se actualizará tras crear el front) |
 
-   > **¿Por qué `NODE_ENV=development`?** Render pone `production` por defecto, y
-   > eso hace que `npm install` **omite** las `devDependencies`. La CLI de Prisma
-   > está en devDeps y el *start command* la usa; si no está, el deploy falla. Con
-   > `development` se instalan todas y el arranque es determinístico. (Esto ya nos
-   > mordió; ver §15.)
+> **¿Por qué `NODE_ENV=development`?** Render pone `production` por defecto, y
+> eso hace que `npm install` **omite** las `devDependencies`. La CLI de Prisma
+> está en devDeps y el *start command* la usa; si no está, el deploy falla. Con
+> `development` se instalan todas y el arranque es determinístico. (Esto ya nos
+> mordió; ver §15.)
+
+> **Importante — orden de despliegue y `CORS_ORIGIN`:**
+> 1. Crea el backend **con `CORS_ORIGIN` provisional** (`http://localhost:5173`).
+> 2. Crea el front (Static Site, §14.2) apuntando a la URL del backend.
+> 3. Copia la URL exacta del front (sin barra final, ej. `https://nova-salud-1.onrender.com`).
+> 4. Vuelve al backend en Render, actualiza `CORS_ORIGIN` con esa URL exacta y **guarda la variable (Render redeploya solo) o Manual Deploy**.
+> Sin `CORS_ORIGIN` correcta, el backend usa `http://localhost:5173` como fallback y **bloqueará las peticiones del front desplegado** (CORS error).
 
 5. **Create Web Service**. Espera a que diga **Live**. Copia la URL, se ve así:
    `https://nova-salud-XXXX.onrender.com`.
@@ -725,25 +729,24 @@ URL del back para compilar.
 1. **New → Static Site**. Conecta el mismo repo, rama `main`.
 2. Configura:
 
-   | Campo | Valor |
-   | --- | --- |
-   | **Root Directory** | `front` |
-   | **Build Command** | `npm install && npm run build` |
-   | **Publish Directory** | `dist` |
+    | Campo | Valor |
+    | --- | --- |
+    | **Root Directory** | `front` |
+    | **Build Command** | `npm install && npm run build` |
+    | **Publish Directory** | `dist` |
 
 3. En **Environment Variables**, agrega las **dos** apuntando a la URL del backend
    del paso 14.1 (sin `/products` ni nada al final, solo la raíz):
 
-   | Key | Value |
-   | --- | --- |
-   | `VITE_API_URL` | `https://nova-salud-XXXX.onrender.com` |
-   | `VITE_SOCKET_URL` | `https://nova-salud-XXXX.onrender.com` |
+    | Key | Value |
+    | --- | --- |
+    | `VITE_API_URL` | `https://nova-salud-XXXX.onrender.com` |
+    | `VITE_SOCKET_URL` | `https://nova-salud-XXXX.onrender.com` |
 
 4. **Create Static Site**. Espera **Live**. Copia su URL (ej.
    `https://nova-salud-1.onrender.com`).
 5. **Verifica** abriendo la URL del front: debería mostrar el Login. Inicia sesión con
-   `admin@novasalud.pe` / `admin123` y confirma que entras al **Inventario** con los
-   5 productos (vista inicial tras el login).
+   `admin@novasalud.pe` / `admin123` y confirma que entras al **Dashboard**. Desde la barra lateral navega a **Inventario** y verifica la tabla con los 5 productos.
 
 ### 14.3 Cómo se actualiza el deploy después
 
@@ -757,12 +760,11 @@ algo viejo y no reflejó tu cambio (por ejemplo, cuando un commit no llegó al r
 - **Cold start:** el backend se duerme tras ~15 min sin tráfico. Al abrir el link
   de nuevo, tarda **30–60 s** en despertar (Render muestra una pantalla de carga).
   *Truco de demo:* 30 s antes de presentar, abre tú la URL del backend para
-  calentarlo.
+  calentarlo. **No cambies variables de entorno entre el calentamiento y la demo** (un cambio dispara redeploy y reinicia la BD).
 - **Filesystem efímero:** el `dev.db` se pierde cuando el servicio se reinicia o
   redeploya. Por eso el *start command* corre `db push && db seed` en cada
   arranque: la demo **siempre** levanta con los 5 productos y el admin. Las ventas
-  hechas en vivo se pierden al reinicio (para persistencia real se usaría Postgres,
-  ver §17).
+  hechas en vivo se pierden al reinicio. **Cada redeploy o reinicio del servicio reinicia la BD completa** (se pierden también los usuarios registrados en vivo durante la demo; para persistencia real se usaría Postgres, ver §17).
 
 ---
 
@@ -786,6 +788,7 @@ Si te topas con uno, ya tiene respuesta.
 | El deploy de Render "no refleja mi cambio" | El commit no llegó al repo, o el build reusó caché vieja. | `git log --oneline` para confirmar que tu commit está; `git push`; y si persiste, *Manual Deploy → Clear build cache & deploy*. |
 | El backend de Render tarda 30–60 s en responder la primera vez | Cold start del plan gratis. | Normal. Calienta el servicio abriendo `/` 30 s antes de presentar. |
 | `ssh -T git@github.com` da `Bad configuration option: \357\273\277host` | Tu `~/.ssh/config` se guardó con BOM (UTF-8 con BOM de PowerShell 5). | Reescribe el config **sin BOM** (en VS Code: *Save with Encoding → UTF-8*, no "UTF-8 with BOM"). |
+| Front desplegado muestra "Cargando inventario…" o error de red / consola: `CORS error` / `Failed to fetch` | `CORS_ORIGIN` en backend no coincide con la URL exacta del front en Render (falta, tiene barra final, o apunta a localhost). | En Render, backend → Environment Variables → `CORS_ORIGIN` = URL exacta del front **sin barra final** (ej. `https://nova-salud-1.onrender.com`). Haz **Manual Deploy → Clear build cache & deploy**. |
 
 > **Regla de oro para diagnosticar:** lee el error completo, separa la señal (la
 > línea que dice `Error:` o `Cannot find`) del ruido (warnings, `npm warn`,
@@ -834,7 +837,7 @@ Estas son las elecciones no obvias y **por qué** se tomaron. Sirven para respon
   `total` que mande el cliente y recalcula desde `Producto.precio`. Así nadie
   puede "comprar" un Paracetamol a S/ 0.01 manipulando el body.
 - **Socket.io como canal de notificación, no de negocio.** El descuento de stock
-  ocurre en la transacción REST; el socket solo **reparte la noticia**. Un cliente
+  ocurre en la transacción REST; el socket solo **reparte la noticia** (`stock_actualizado`, `alerta_bajo_stock` **se emite para los productos que quedan en o bajo el mínimo tras la venta** (`stockNuevo ≤ stockMinimo`), `venta_registrada`, `venta_anulada`). Un cliente
   malicioso no puede mutar el stock por WebSocket (es read-only, sin token, porque
   lo que expone ya es público en `GET /products`).
 - **`req.io?.emit` con optional chaining.** El controller de venta se escribió en
@@ -850,15 +853,15 @@ Estas son las elecciones no obvias y **por qué** se tomaron. Sirven para respon
   `DetalleVenta` antes de borrar y responde 409 con mensaje humano. Preserva
   trazabilidad sin tocar el schema.
 - **Sin React Router (por ahora).** La alternancia de vistas (Login / Dashboard /
-  Inventario / Caja / Ventas / Auditoría / Configuración) se hace con estado, no
+  Inventario / Caja / Ventas / **Cierre de caja** / Auditoría / Configuración / **Usuarios**) se hace con estado, no
   con rutas. Reduce superficie de error para un equipo pequeño; migrar a Router es
   mejora futura (§17).
 - **Auditoría con diff.** `PRODUCT_UPDATE` guarda en `detalle.cambios` el valor
   anterior y nuevo de cada campo modificado; `CONFIG_UPDATE` audita los cambios de
   configuración. Permite trazabilidad completa sin tablas extra.
 - **Trazabilidad de stock.** Cada cambio de inventario genera un `MovimientoStock`
-  (INICIAL, AJUSTE, VENTA) con stock anterior/nuevo y usuario, consultable por
-  admin/farmacéutico.
+  con stock anterior/nuevo y usuario, consultable por admin/farmacéutico. Tipos:
+  **INICIAL** (seed), **AJUSTE** (admin/farma), **VENTA** (caja), **ANULACION** (admin/farma), **ENTRADA** (recepción mercancía).
 - **Sistema de temas.** La preferencia (claro/oscuro/sistema) se persiste en
   `localStorage` y se aplica como `data-theme` en `<html>` con script inline
   anti-parpadeo; "sistema" sigue `prefers-color-scheme`.
@@ -877,23 +880,27 @@ entrega, van por aquí:
 - **Postgres gestionado** en vez de SQLite efemero, para que las ventas de la demo persistan (requiere cambiar `provider` en el schema y usar `migrate deploy`).
 - **Migrar a Prisma 7** siguiendo la guia oficial (ESM, `prisma.config.ts`, driver adapters, seed en `migrations.seed`).
 - **React Router** para rutas reales (`/inventario`, `/caja`, `/ventas/:id`) en vez de estado.
-- **CORS restringido** al origin del front cuando haya dominio propio (hoy es `origin: "*"` por simplicidad en el plan gratis).
 - **Rooms de Socket.io por rol** para alertas privadas en vez de broadcast global.
 - **Render de pago** para eliminar cold start y sleep.
 - **Imagenes reales** de productos (hoy el front muestra la inicial como placeholder; el campo `imagen` ya existe en el modelo para cuando haya assets).
+
+---
+
+<a name="18-checklist"></a>
 ## 18. Checklist de entrega (7 de noviembre)
 
 - [ ] Repo `yusgreen/nova-salud` con todo el código commiteado y pusheado.
 - [ ] Este `README.md` actualizado.
 - [ ] Backend desplegado en Render, URL pública respondiendo `/` y `/products`.
-- [ ] Frontend desplegado en Render, URL pública mostrando Login → Inventario.
+- [ ] Frontend desplegado en Render, URL pública mostrando Login → Dashboard.
 - [ ] Prueba de tiempo real en vivo: dos pestañas, vender en una y ver la otra
       actualizarse sola (stock + toast + ticket en Ventas).
 - [ ] Prueba de roles: cajero sin botones de edición ni pestaña Ventas (y 403 por
       API si intenta).
 - [ ] Prueba de venta atómica: stock insuficiente → 400 y el stock **no** cambia.
-- [ ] Pruebas: `cd back && npm test` (53 pruebas) pasando.
-- [ ] Tema claro/oscuro: verificar en Configuración (Claro / Oscuro / Sistema).
+- [ ] Pruebas: `cd back && npm test` (54 pruebas) pasando.
+- [ ] Tema claro/oscuro/sistema: cambiar desde **Mi perfil → Tema** (todos los roles).
+- [ ] Invitar al profesor como colaborador del repo (rol **Write**).
 - [ ] Documentación: propuesta de las 5 preguntas guía + 4 diagramas (casos de uso,
       arquitectura, flujo de venta, ER) + plantilla completa.
 - [ ] Video demo (si el curso lo pide).

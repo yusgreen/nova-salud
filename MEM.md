@@ -1,4 +1,4 @@
-﻿# MEM.md - Memoria Persistente del Proyecto Nova Salud
+# MEM.md - Memoria Persistente del Proyecto Nova Salud
 
 > Este archivo es la memoria persistente del sistema. Todo agente debe leerlo al
 > inicio de cada tarea y actualizarlo cuando existan cambios relevantes de
@@ -88,7 +88,7 @@ nova-salud/
 - Auth: `AuthLayout` es una tarjeta centrada (máx. 400 px) con logo + nombre + lema arriba, formulario al centro y credenciales demo discretas al pie (visibles solo si `mostrarAyudaDemo`). Login/Register usan `.auth-*`, `.input`, `.btn`, `.label`, `.form-grid`.
 - Sistema de temas: preferencia `light | dark | system` persistida en `localStorage` (`nova_theme`), aplicada como `data-theme` en `<html>` con script inline anti-parpadeo en `index.html`; `system` sigue `prefers-color-scheme`. Selector en Configuración y botón cíclico en la Topbar visible para todos los roles.
 - Sesión vencida: `api.js` centraliza los 401 de peticiones autenticadas, limpia el token una sola vez (flag anti-bucles), emite `nova:session-expired` y muestra un Toast global; AuthContext limpia el usuario y App vuelve al Login.
-- Topbar (2026-11): saludo dinámico según la hora local con el nombre de pila (`Buenos días` 5-11:59, `Buenas tardes` 12-18:59, `Buenas noches` resto), compactado a `Hola, {nombre}` en ≤600 px (o solo `Hola` sin nombre); botón de tema y avatar circular neutro con iniciales. El avatar abre un menú desplegable (no modal) con nombre, correo, chip de rol, `Mi perfil` y `Salir` separado; cierra con clic fuera y Escape, abre con foco en el primer ítem, navega con flechas/Home/End y expone `aria-haspopup`/`aria-expanded`. Se eliminaron de la topbar el título de sección, el nombre suelto, el chip de rol y el botón Salir suelto.
+- Topbar (2026-11): saludo dinámico según la hora local con el nombre de pila (`Buenos días` 5-11:59, `Buenas tardes` 12-18:59, `Buenas noches` resto), compactado a `Hola, {nombre}` en ≤600 px (o solo `Hola` sin nombre); fecha y hora exacta en vivo (actualizada cada segundo) y avatar circular neutro con iniciales (el botón de tema se movió a Mi perfil → Tema). El avatar abre un menú desplegable (no modal) con nombre, correo, chip de rol, `Mi perfil` y `Salir` separado; cierra con clic fuera y Escape, abre con foco en el primer ítem, navega con flechas/Home/End y expone `aria-haspopup`/`aria-expanded`. Se eliminaron de la topbar el título de sección, el nombre suelto, el chip de rol y el botón Salir suelto.
 - Perfil propio: `ProfileModal` se abre desde `Mi perfil` del menú del avatar; cambio de nombre y de contraseña con validación local (confirmación y mínimo 6) y feedback con Toast reutilizado.
 - Gestión de usuarios: el switch de estado usa ConfirmDialog antes de desactivar; el select de rol se deshabilita para el propio usuario; la tabla reutiliza el estilo de auditoría/ventas y muestra un badge "Tú". Los cambios de rol y estado se auditan con diff.
 - Vencimientos: helper `services/vencimientos.js` normaliza fechas sin hora en calendario local; `<=30 dias` es "pronto", `<0` es "vencido"; los productos sin fecha se ignoran.
@@ -113,6 +113,12 @@ nova-salud/
 
 - Regla: no hacer commit ni push sin autorización del usuario.
 
+- Auditoria final pre-commit (2026-11): 54/54 tests y build OK. Se corrigio `rangoDiaCierre` (sale.controller) para rotular el cierre con la fecha local en vez de UTC y la prueba de cierre para calcular `fechaHoy` en local; el fallo nocturno era de la prueba, no de la app. La Topbar ya no tiene boton de tema y muestra fecha/hora en vivo; el tema quedo accesible para todos en Mi perfil > Tema. README, PRESENTACION, Pruebas y MEM actualizados (54 tests, reloj y ubicacion del tema).
+
+- Ilustraciones (2026-11): SVG inline (sin dependencias) en el login (`AuthLayout`: escudo con cruz medica, capsulas y frasco) y en el panel de cajero (`Dashboard`: recibo + caja registradora + bolsa + monedas) dentro del header `.dashboard-head.is-cajero`. Regla: en JSX/SVG usar `width`/`height` (no `w`/`h`) o los rects no se dibujan. `.auth-shell` volvio a flex centrado con la ilustracion al lado (oculta <=900 px); la del cajero se reduce a 140x99 px en <=640 px. Ademas, el header del Dashboard ya no repite el saludo de la Topbar: admin muestra "Resumen de la farmacia", farmaceutico "Control de inventario" y cajero "Tu turno de hoy". El subtitulo es dinamico via `fraseDelPanel()`: sin ventas, arranque (<5), buen ritmo (<15) o excelente jornada (>=15), con monto recaudado y producto mas vendido; cambia "hoy" por "en tu turno" para cajero. La Topbar ya no tiene boton de tema: ahora muestra fecha y hora exacta en vivo (actualiza cada segundo, 24 h; en <=600 px oculta la fecha y deja la hora). El tema se cambia desde Mi perfil > Tema (todos los roles) o Configuracion > Apariencia (admin).
+
+- Graficos dashboard (2026-11): solo roles con inventario (admin/farmaceutico) ven `.charts-grid` con dos tarjetas HTML/CSS sin dependencias: `GraficoVentasSemana` (barras de recaudado de los ultimos 7 dias, tooltip con monto y cantidad) y `GraficoTopProductos` (barras horizontales del top 5 por unidades). La serie y el top se calculan en `metricas` desde `ventas`; el cajero no los ve. Grid pasa a 1 columna en <=900 px. El panel admin reordena la zona analitica en 2x2: Recaudado por metodo (izquierda) + mini calendario semanal (derecha), luego barras de 7 dias + top productos. `MiniCalendarioSemanal` muestra 7 celdas con dia, numero y monto (hoy resaltado, tooltip con ventas); `RecaudoPorMetodo` ahora tambien renderiza estado vacio "Sin ventas registradas hoy" para no romper el grid. Calendario pasa a 4 columnas en <=640 px.
+
 ## Convenciones de codigo
 
 - Backend: CommonJS (`"type": "commonjs"`); rutas en plural; un controller por recurso; middleware de auth.
@@ -124,9 +130,11 @@ nova-salud/
 
 - Backend: `npm run dev`, `npm test`, `npm run db:push`, `npm run db:seed`, `npm run db:studio`.
 - Frontend: `npm run dev`, `npm run build`.
-- Tests: `cd back && npm test` (53 pruebas: auth/auditoria, perfil propio, roles, ventas atomicas, filtros de ventas, validacion de productos, inventario ampliado/trazabilidad, configuracion, gestión de usuarios, métodos de pago, anulación de ventas, productos inactivos/entradas y cierre de caja).
+- Tests: `cd back && npm test` (54 pruebas: auth/auditoria, perfil propio, roles, ventas atomicas, filtros de ventas, validacion de productos, inventario ampliado/trazabilidad, configuracion, gestión de usuarios, métodos de pago, anulación de ventas, productos inactivos/entradas y cierre de caja).
 
 ## Archivos de apoyo
 
 - `README.md` — documentacion principal (42KB).
 - `NOTAS.md` — notas rapidas de desarrollo.
+- `Pruebas.md` — guia de pruebas manuales (login, navegacion, panel por rol, inventario, caja, ventas, cierre, auditoria, configuracion, usuarios, perfil, impresion, tiempo real, responsive y accesibilidad) con casos numerados, resultado esperado y plantilla de reporte de bugs.
+- `PRESENTACION.md` y `DIAGRAMAS.md` — material de exposicion.

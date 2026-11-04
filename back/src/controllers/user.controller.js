@@ -12,6 +12,7 @@ const CAMPOS_PUBLICOS = {
   email: true,
   rol: true,
   activo: true,
+  avatar: true,
 };
 
 function parseId(raw) {

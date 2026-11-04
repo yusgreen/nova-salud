@@ -21,6 +21,7 @@ model Usuario {
   passwordHash String                    // bcrypt, NUNCA texto plano. La condicion 1 vive aqui.
   rol          String   @default("cajero") // admin | farmaceutico | cajero
   activo       Boolean  @default(true)     // false = login y tokens rechazados
+  avatar       String?                     // data URL base64 (image/jpeg|png|webp, max ~60KB)
   // Por que String y no enum: SQLite no soporta enums nativos en Prisma.
   // Con String evitamos que db push reviente en la primera creacion de tablas.
   ventas       Venta[]                    // relacion inversa: un usuario tiene muchas ventas

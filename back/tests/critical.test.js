@@ -251,6 +251,58 @@ describe("Nova Salud API · flujos críticos", () => {
       assert.equal(loginNuevo.status, 200);
       assert.equal(loginNuevo.data.user.passwordHash, undefined);
     });
+
+    it("actualiza el avatar, lo recupera y permite quitarlo", async () => {
+      // 1) Foto válida (base64 pequeña)
+      const avatarData = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+      const r1 = await request("/auth/me", {
+        method: "PUT",
+        token: perfilToken,
+        body: { avatar: avatarData },
+      });
+      assert.equal(r1.status, 200);
+      assert.equal(r1.data.user.avatar, avatarData);
+
+      // Audita sin la imagen
+      const log = await prisma.auditLog.findFirst({
+        where: { accion: "AVATAR_UPDATE", entidadId: perfil.id },
+        orderBy: { id: "desc" },
+      });
+      assert.ok(log);
+      assert.ok(!log.detalle.includes("base64"));
+
+      // 2) Formato inválido
+      const r2 = await request("/auth/me", {
+        method: "PUT",
+        token: perfilToken,
+        body: { avatar: "data:text/plain;base64,YWJj" },
+      });
+      assert.equal(r2.status, 400);
+
+      // 3) Tamaño excesivo
+      const bigAvatar = "data:image/jpeg;base64," + "a".repeat(90000);
+      const r3 = await request("/auth/me", {
+        method: "PUT",
+        token: perfilToken,
+        body: { avatar: bigAvatar },
+      });
+      assert.equal(r3.status, 400);
+
+      // 4) Quitar foto
+      const r4 = await request("/auth/me", {
+        method: "PUT",
+        token: perfilToken,
+        body: { avatar: null },
+      });
+      assert.equal(r4.status, 200);
+      assert.equal(r4.data.user.avatar, null);
+
+      // 5) GET /users (admin) devuelve avatar
+      const r5 = await request("/users", { token: adminToken });
+      const userConAvatar = r5.data.find(u => u.id === perfil.id);
+      assert.ok(userConAvatar);
+      assert.strictEqual(userConAvatar.avatar, null);
+    });
   });
 
   describe("Permisos por rol", () => {
@@ -989,7 +1041,8 @@ describe("Nova Salud API · flujos críticos", () => {
     });
   });
   describe("Cierre de caja", () => {
-    const fechaHoy = new Date().toISOString().slice(0, 10);
+    const ahora = new Date();
+    const fechaHoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}-${String(ahora.getDate()).padStart(2, "0")}`;
     let ventaCajero;
     let ventaAdmin;
 

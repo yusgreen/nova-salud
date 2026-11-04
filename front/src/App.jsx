@@ -94,7 +94,7 @@ export default function App() {
 
             <div className="app-main">
               <Topbar onMenu={() => setMenuAbierto(true)} />
-              <main className="content" key={tab} role="main">
+              <main className={`content animate-tab`} key={tab} role="main">
                 {tab === "dashboard" && <Dashboard />}
                 {tab === "inventario" && <Inventario />}
                 {tab === "caja" && <Caja />}

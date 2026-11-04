@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
 import ProfileModal from "./ProfileModal";
-import { IconTema } from "./Icons";
-
-const ETIQUETAS_TEMA = { light: "Claro", dark: "Oscuro", system: "Sistema" };
-const ORDEN_TEMA = ["light", "dark", "system"];
 
 const ROLE_LABELS = {
   admin: "Administrador",
@@ -36,15 +31,14 @@ function iniciales(nombre = "") {
 
 export default function Topbar({ onMenu }) {
   const { usuario, logout } = useAuth();
-  const { preferencia, cambiarTema } = useTheme();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
-  const [hora, setHora] = useState(() => new Date().getHours());
+  const [ahora, setAhora] = useState(() => new Date());
   const menuRef = useRef(null);
   const avatarRef = useRef(null);
 
   useEffect(() => {
-    const id = setInterval(() => setHora(new Date().getHours()), 60000);
+    const id = setInterval(() => setAhora(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -72,11 +66,6 @@ export default function Topbar({ onMenu }) {
     };
   }, [menuAbierto]);
 
-  function ciclarTema() {
-    const actual = ORDEN_TEMA.indexOf(preferencia);
-    cambiarTema(ORDEN_TEMA[(actual + 1) % ORDEN_TEMA.length]);
-  }
-
   function navegarMenu(e) {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
     const items = [...(menuRef.current?.querySelectorAll('[role="menuitem"]') || [])];
@@ -90,7 +79,19 @@ export default function Topbar({ onMenu }) {
   }
 
   const nombre = nombreDePila(usuario?.nombre);
-  const saludo = tramoSaludo(hora);
+  const saludo = tramoSaludo(ahora.getHours());
+  const fechaTexto = ahora.toLocaleDateString("es-PE", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const horaTexto = ahora.toLocaleTimeString("es-PE", {
+    hourCycle: "h23",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 
   return (
     <>
@@ -119,15 +120,10 @@ export default function Topbar({ onMenu }) {
         </div>
 
         <div className="topbar-right">
-          <button
-            type="button"
-            className="btn btn-ghost btn-icon"
-            onClick={ciclarTema}
-            title={`Cambiar tema (actual: ${ETIQUETAS_TEMA[preferencia]})`}
-            aria-label={`Cambiar tema (actual: ${ETIQUETAS_TEMA[preferencia]})`}
-          >
-            <IconTema className="icon-md" aria-hidden="true" />
-          </button>
+          <time className="topbar-clock" dateTime={ahora.toISOString()}>
+            <span className="topbar-clock-date">{fechaTexto}</span>
+            <span className="topbar-clock-time">{horaTexto}</span>
+          </time>
 
           <div className="topbar-profile" ref={menuRef}>
             <button
@@ -140,7 +136,11 @@ export default function Topbar({ onMenu }) {
               aria-controls={menuAbierto ? "topbar-menu" : undefined}
               aria-label={`Cuenta de ${usuario?.nombre || "usuario"}`}
             >
-              {iniciales(usuario?.nombre)}
+              {usuario?.avatar ? (
+                <img src={usuario.avatar} alt="" className="avatar-img" />
+              ) : (
+                iniciales(usuario?.nombre)
+              )}
             </button>
 
             {menuAbierto && (

@@ -243,9 +243,11 @@ export default function Usuarios() {
                   <tr key={u.id}>
                     <td>
                       <div className="cell-user">
-                        <span className="avatar" aria-hidden="true">
-                          {iniciales(u.nombre)}
-                        </span>
+                        {u.avatar ? (
+                          <img src={u.avatar} alt="" className="avatar img-cover" />
+                        ) : (
+                          <span className="avatar" aria-hidden="true">{iniciales(u.nombre)}</span>
+                        )}
                         <span className="cell-user-label">
                           <strong>{u.nombre}</strong>
                           {esYo && <span className="badge badge-info">Tú</span>}

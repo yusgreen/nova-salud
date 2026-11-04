@@ -48,6 +48,13 @@ function construirFiltroVentas(query = {}) {
   return { where };
 }
 
+function fechaLocalISO(fecha) {
+  const y = fecha.getFullYear();
+  const m = String(fecha.getMonth() + 1).padStart(2, "0");
+  const d = String(fecha.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 function rangoDiaCierre(fechaStr) {
   let texto = fechaStr;
   if (!texto) {
@@ -55,7 +62,7 @@ function rangoDiaCierre(fechaStr) {
     hoy.setHours(0, 0, 0, 0);
     const fin = new Date(hoy);
     fin.setHours(23, 59, 59, 999);
-    return { fecha: hoy.toISOString().slice(0, 10), inicio: hoy, fin };
+    return { fecha: fechaLocalISO(hoy), inicio: hoy, fin };
   }
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(texto))) {
