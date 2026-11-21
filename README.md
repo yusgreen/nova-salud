@@ -1,3 +1,5 @@
+Lider del Proyecto:Angel Pereda Chavez
+Colaboradores:Marlon Yasser Yanac Sajami, Brad Ocaña
 # Nova Salud 💊
 
 Sistema web de **inventario y ventas en tiempo real** para una botica. Trabajo
